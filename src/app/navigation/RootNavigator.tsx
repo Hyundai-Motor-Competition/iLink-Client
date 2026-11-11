@@ -1,0 +1,90 @@
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { isGuardianRole, useAuthStore } from '../../stores/authStore';
+import { DemoNavigator } from './DemoNavigator';
+import { GuardianHomeScreen } from '../../features/session/GuardianHomeScreen';
+import { FamilyProfileScreen } from '../../features/family/FamilyProfileScreen';
+import { ScheduleScreen } from '../../features/schedule/ScheduleScreen';
+import { SpotApprovalScreen } from '../../features/spot/SpotApprovalScreen';
+import { SetupReviewScreen } from '../../features/setup/SetupReviewScreen';
+import { PickupProgressScreen } from '../../features/session/PickupProgressScreen';
+import { PickupExceptionScreen } from '../../features/session/PickupExceptionScreen';
+import { PickupOutcomeScreen } from '../../features/outcome/PickupOutcomeScreen';
+import { ChildSessionScreen } from '../../features/child/ChildSessionScreen';
+import type { ChildStackParams, GuardianStackParams } from './types';
+
+const Guardian = createNativeStackNavigator<GuardianStackParams>();
+const Child = createNativeStackNavigator<ChildStackParams>();
+
+export function RootNavigator() {
+  const { status, auth } = useAuthStore();
+
+  if (status === 'loading') {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (status === 'signedOut' || !auth) {
+    return <DemoNavigator />;
+  }
+
+  if (isGuardianRole(auth.role)) {
+    return (
+      <Guardian.Navigator>
+        <Guardian.Screen
+          name="GuardianHome"
+          component={GuardianHomeScreen}
+          options={{ title: '홈' }}
+        />
+        <Guardian.Screen
+          name="FamilyProfile"
+          component={FamilyProfileScreen}
+          options={{ title: '가족 프로필' }}
+        />
+        <Guardian.Screen
+          name="Schedule"
+          component={ScheduleScreen}
+          options={{ title: '학원·픽업 일정' }}
+        />
+        <Guardian.Screen
+          name="SpotApproval"
+          component={SpotApprovalScreen}
+          options={{ title: '픽업 장소' }}
+        />
+        <Guardian.Screen
+          name="SetupReview"
+          component={SetupReviewScreen}
+          options={{ title: '설정 확인' }}
+        />
+        <Guardian.Screen
+          name="PickupProgress"
+          component={PickupProgressScreen}
+          options={{ title: '픽업 진행' }}
+        />
+        <Guardian.Screen
+          name="PickupException"
+          component={PickupExceptionScreen}
+          options={{ title: '예외 대응' }}
+        />
+        <Guardian.Screen
+          name="PickupOutcome"
+          component={PickupOutcomeScreen}
+          options={{ title: '픽업 결과' }}
+        />
+      </Guardian.Navigator>
+    );
+  }
+
+  return (
+    <Child.Navigator screenOptions={{ headerShown: false }}>
+      <Child.Screen name="ChildSession" component={ChildSessionScreen} />
+    </Child.Navigator>
+  );
+}
+
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+});
