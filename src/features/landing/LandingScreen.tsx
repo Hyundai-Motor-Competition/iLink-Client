@@ -23,7 +23,7 @@ export function LandingScreen({ navigation }: Props) {
           emoji="부모"
           title="부모"
           desc="차량을 연결하고 자녀의 픽업 일정을 관리해요."
-          onPress={() => navigation.navigate('PQrScan')}
+          onPress={() => navigation.navigate('PFamilyIntro')}
         />
         <RoleCard
           emoji="자녀"

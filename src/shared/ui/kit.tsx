@@ -314,7 +314,13 @@ export function BottomSheet({
   onClose,
   children,
   tall,
-}: PropsWithChildren<{ visible: boolean; onClose(): void; tall?: boolean }>) {
+  sheetStyle,
+}: PropsWithChildren<{
+  visible: boolean;
+  onClose(): void;
+  tall?: boolean;
+  sheetStyle?: ViewStyle;
+}>) {
   return (
     <Modal
       transparent
@@ -323,7 +329,9 @@ export function BottomSheet({
       onRequestClose={onClose}
     >
       <Pressable style={styles.dim} onPress={onClose} />
-      <View style={[styles.sheet, tall && styles.sheetTall]}>{children}</View>
+      <View style={[styles.sheet, tall && styles.sheetTall, sheetStyle]}>
+        {children}
+      </View>
     </Modal>
   );
 }

@@ -25,21 +25,31 @@ export type ChildStackParams = {
 /** 랜딩(부모/자녀 선택) 이후 Figma 와이어프레임 기준 화면. 아직 목업 데이터로 동작한다. */
 export type DemoStackParams = {
   Landing: undefined;
-  // 부모: 차량 연결·프로필
+  // 부모: 가족 프로필 등록 (차량 연결 → 약관 → 보호자 → 자녀 → 초대장)
+  PFamilyIntro: undefined;
+  /** 인증 번호(차량 화면의 연결 코드) 입력 */
+  PCodeEntry: undefined;
   PQrScan: undefined;
   PCarConfirm: undefined;
   PTerms: undefined;
   PGuardianProfile: undefined;
+  PGuardianPhoto: undefined;
   PChildProfile: undefined;
-  PFamilyDone: undefined;
+  PChildPhoto: undefined;
+  PInviteShare: undefined;
+  PInviteSent: undefined;
   // 부모: 메인(홈·현황·기록·마이)
   PMain: { tab?: 'home' | 'status' | 'records' | 'my' } | undefined;
   // 부모: 픽업 일정 등록
-  PScheduleIntro: undefined;
+  /** 픽업 일정 등록 1 · 자녀 선택 */
   PScheduleChild: undefined;
+  /** 픽업 일정 등록 2 · 시작. 초대장 전송 직후면 자녀 선택을 건너뛰고 바로 온다 */
+  PScheduleIntro: { fromInvite?: boolean } | undefined;
   PScheduleAcademy: undefined;
+  PScheduleConfirm: undefined;
   PScheduleSpot: undefined;
   PScheduleTime: undefined;
+  PScheduleReview: undefined;
   PScheduleDone: undefined;
   // 부모: 진행 중 픽업 · 결과
   PPickupLive: { id: string };

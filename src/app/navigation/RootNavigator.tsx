@@ -27,8 +27,10 @@ export function RootNavigator() {
     );
   }
 
-  if (status === 'signedOut' || !auth) {
-    return <DemoNavigator />;
+  // 로그인 전(데모)과 보호자 로그인 뒤 모두 디자인 화면을 쓴다.
+  // 같은 자리의 같은 컴포넌트라 가족 프로필 등록 중 로그인(LINK-04)해도 화면 이동 기록이 이어진다.
+  if (status === 'signedOut' || !auth || isGuardianRole(auth.role)) {
+    return <DemoNavigator initialRouteName={auth ? 'PMain' : 'Landing'} />;
   }
 
   if (isGuardianRole(auth.role)) {

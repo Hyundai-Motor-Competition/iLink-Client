@@ -62,3 +62,11 @@ Swagger와 실제 서버가 다른 점 (클라이언트에 반영 필요):
 - **SET-11 자녀 위치 사용** `PUT /v1/families/me/child-location {enabled}`: 기본 꺼짐. 꺼져 있으면 SIG-04가 403 LOCATION_CONSENT_REQUIRED. 보호자 설정 화면에 스위치가 필요하다
 - **LINK-04** `platform`이 필수 (ANDROID · IOS)
 - **SPOT-04 장소 추천** `GET /v1/pickup-spot-recommendations?academyId&origin=위도,경도[&arriveAt]`: 학원 근처 길가 정차(CURB_STOP) · 공영주차장 후보를 순위대로. 결과에 spotId가 없어서, 보호자가 고르면 SPOT-02로 저장해야 차량이 길안내 · 확정(SES-04)할 수 있다. `cautions`: ENFORCEMENT_CAMERA_NEAR(단속 카메라 근처), LINE_DATA_2021(데이터 기준 안내)
+
+## 2026.11.14 모바일 부모 화면(픽업 일정 · 현황)을 서버에 붙이며 확인한 것
+
+- **정차 실패**: 현황메뉴 3·4(경로 이탈 감지 · 정차하지 못했어요)를 서버로 만들 방법이 없다. SES-13 예외 열기는 `type`이 `CHILD_NOT_ON_BOARD`만 된다. 화면은 `incident.type == STOP_FAILED`면 팝업을 띄우게 해 두었다
+- **합류 안내 상태**: 정차 직후 `call.callId`는 생기지만 `progress.sentAt`은 비어 있다(status ACCEPTED). 모바일은 callId가 있으면 "만나는 곳으로 가기" 진행으로 본다
+- **보류(CALL-01) · 장소 변경(SES-05)**: 보호자 토큰으로 된다. 장소를 바꾸면 `spot`이 SELECTED로 돌아가 차량이 SES-04로 다시 확정해야 한다
+- **학원 검색(SET-01)**: 보호자 토큰만 된다(차량 토큰 403)
+- **설정 완료(SET-08)**: 자녀가 초대를 수락하기 전에는 CHILD_DEVICE로 막힌다. 모바일은 일정 · 장소 저장은 하고 설정 완료 실패는 무시한다

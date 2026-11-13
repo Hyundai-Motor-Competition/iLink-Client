@@ -1,35 +1,28 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Image,
   PanResponder,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HomeTab, StatusTab } from './MainTabs';
+import { TAB_BAR_SPACE } from './ParentTabBar';
+import { useAuthStore } from '../../stores/authStore';
+import { useQueryClient } from '@tanstack/react-query';
 import type { DemoStackParams } from '../../app/navigation/types';
 import { Button } from '../../shared/ui/Button';
 import { Avatar } from '../../shared/ui/kit';
-import { IconCircle } from '../../shared/ui/art';
 import { colors, font, radius, spacing } from '../../shared/theme/tokens';
 import { mock } from './mock';
 import { ParentTabBar, type ParentTab } from './ParentTabBar';
-import { childPhoto, getChild } from './children';
-import {
-  addDays,
-  parseYmd,
-  type Pickup,
-  type PickupStatus,
-  type Schedule,
-  upcomingPickups,
-  usePickupStore,
-  ymd,
-} from './pickupStore';
-import { scheduleLabel } from './scheduleDraft';
+import { childPhoto } from './children';
+import { addDays, parseYmd, usePickupStore, ymd } from './pickupStore';
 
 type Props = NativeStackScreenProps<DemoStackParams, 'PMain'>;
 type Tab = ParentTab;
@@ -43,9 +36,18 @@ export function ParentMainScreen({ navigation, route }: Props) {
     if (paramTab) setTab(paramTab);
   }, [paramTab]);
   const nav = navigation;
+  const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView style={s.root} edges={['top']}>
-      <View style={s.flex}>
+    <View
+      style={[
+        s.root,
+        tab === 'home' && s.rootHome,
+        // 메인 · 현황 시안은 iPhone 상태 표시줄(47pt) 기준 절대 위치
+        { paddingTop: Math.max(insets.top, 47) },
+      ]}
+    >
+      <StatusBar barStyle="dark-content" />
+      <View style={[s.flex, (tab === 'records' || tab === 'my') && s.tabSpace]}>
         {tab === 'home' && <HomeTab nav={nav} />}
         {tab === 'status' && <StatusTab nav={nav} />}
         {tab === 'records' && <RecordsTab nav={nav} />}
@@ -59,334 +61,11 @@ export function ParentMainScreen({ navigation, route }: Props) {
           navigation.setParams({ tab: t });
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 type Nav = Props['navigation'];
-
-const WEEK_KO = ['일', '월', '화', '수', '목', '금', '토'];
-const dateLabel = (d: Date) =>
-  `${d.getMonth() + 1}/${d.getDate()} (${WEEK_KO[d.getDay()]})`;
-
-const STATUS_BADGE: Record<PickupStatus, { label: string; color: string }> = {
-  scheduled: { label: '예정', color: colors.subText },
-  live: { label: '진행 중', color: colors.primary },
-  done: { label: '완료', color: colors.success },
-  cancelled: { label: '철회됨', color: colors.danger },
-};
-
-function Badge({ status }: { status: PickupStatus }) {
-  const b = STATUS_BADGE[status];
-  return (
-    <View style={[s.badge, { borderColor: b.color }]}>
-      <Text style={[s.badgeText, { color: b.color }]}>{b.label}</Text>
-    </View>
-  );
-}
-
-/** 오늘 픽업 한 건: 상태에 따라 시작·진행 보기·다시 호출·결과 보기 */
-function TodayCard({ p, nav }: { p: Pickup; nav: Nav }) {
-  const startPickup = usePickupStore(st => st.startPickup);
-  const recallPickup = usePickupStore(st => st.recallPickup);
-  const child = getChild(p.childId);
-  const openLive = () => nav.navigate('PPickupLive', { id: p.id });
-  const openRecord = () =>
-    p.recordId && nav.navigate('POutcome', { recordId: p.recordId });
-  return (
-    <View style={[s.homeCard, p.status === 'cancelled' && s.homeCardOff]}>
-      <View style={s.rowBetween}>
-        <Text style={s.homeEyebrow}>오늘 {p.time}</Text>
-        <Badge status={p.status} />
-      </View>
-      <View style={s.todayRow}>
-        <Image source={childPhoto(child.id)} style={s.photo48} />
-        <View style={s.flex}>
-          <Text style={s.homeMain}>{child.name}</Text>
-          <Text style={s.homeSub}>{p.altSpot ?? p.place}</Text>
-        </View>
-      </View>
-      {p.status === 'scheduled' ? (
-        <Button
-          label="픽업 시작하기"
-          style={s.mt12}
-          onPress={() => {
-            startPickup(p.id);
-            openLive();
-          }}
-        />
-      ) : null}
-      {p.status === 'live' ? (
-        <Button label="진행 현황 보기" style={s.mt12} onPress={openLive} />
-      ) : null}
-      {p.status === 'cancelled' ? (
-        <>
-          <Text style={s.cancelNote}>
-            호출을 철회했어요. 자녀는 건물 안에서 기다리고 있어요.
-          </Text>
-          <View style={s.row}>
-            <Button
-              variant="outline"
-              label="기록 보기"
-              style={s.flex}
-              onPress={openRecord}
-            />
-            <Button
-              label="다시 호출하기"
-              style={s.flex}
-              onPress={() => recallPickup(p.id)}
-            />
-          </View>
-        </>
-      ) : null}
-      {p.status === 'done' ? (
-        <Button
-          variant="outline"
-          label="결과 보기"
-          style={s.mt12}
-          onPress={openRecord}
-        />
-      ) : null}
-    </View>
-  );
-}
-
-function ScheduleRow({ sc, onRemove }: { sc: Schedule; onRemove?(): void }) {
-  const child = getChild(sc.childId);
-  return (
-    <View style={s.homeRow}>
-      <Image source={childPhoto(child.id)} style={s.photo40} />
-      <View style={s.flex}>
-        <Text style={s.homeRowTitle}>
-          {child.name} · {scheduleLabel(sc.days, sc.weekly, sc.time)}
-        </Text>
-        <Text style={s.homeSub}>{sc.academy}</Text>
-      </View>
-      {onRemove ? (
-        <Pressable hitSlop={10} onPress={onRemove}>
-          <Text style={s.remove}>삭제</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
-/** 홈: Figma에 아직 화면이 없어 오늘 픽업·등록된 일정 요약을 둔다. */
-function HomeTab({ nav }: { nav: Nav }) {
-  const schedules = usePickupStore(st => st.schedules);
-  const pickups = usePickupStore(st => st.pickups);
-  const today = ymd(new Date());
-  const todays = pickups.filter(p => p.date === today);
-  return (
-    <ScrollView contentContainerStyle={s.page}>
-      <Text style={s.pageTitle}>{mock.guardian.alias}님, 안녕하세요</Text>
-      <Text style={s.sectionTitle}>오늘의 픽업</Text>
-      {todays.length ? (
-        todays.map(p => <TodayCard key={p.id} p={p} nav={nav} />)
-      ) : (
-        <View style={s.emptyBox}>
-          <Text style={s.homeSub}>오늘 예정된 픽업이 없어요.</Text>
-        </View>
-      )}
-      <Pressable
-        style={s.homeRow}
-        onPress={() => nav.navigate('PScheduleIntro')}
-      >
-        <IconCircle glyph="+" size={40} />
-        <View style={s.flex}>
-          <Text style={s.homeRowTitle}>픽업 일정 등록</Text>
-          <Text style={s.homeSub}>학원과 픽업 장소, 시간을 등록해요</Text>
-        </View>
-        <Text style={s.chev}>›</Text>
-      </Pressable>
-      <Text style={s.sectionTitle}>등록된 일정 {schedules.length}</Text>
-      {schedules.map(sc => (
-        <ScheduleRow key={sc.id} sc={sc} />
-      ))}
-    </ScrollView>
-  );
-}
-
-const STATUS_FILTERS = ['픽업 예정', '진행 중', '자녀별 일정'];
-
-/** 현황메뉴: 픽업 예정 · 진행 중 · 자녀별 일정 */
-function StatusTab({ nav }: { nav: Nav }) {
-  const schedules = usePickupStore(st => st.schedules);
-  const pickups = usePickupStore(st => st.pickups);
-  const startPickup = usePickupStore(st => st.startPickup);
-  const removeSchedule = usePickupStore(st => st.removeSchedule);
-  const today = ymd(new Date());
-  const live = pickups.filter(p => p.status === 'live');
-  const endedToday = pickups.filter(
-    p => p.date === today && (p.status === 'done' || p.status === 'cancelled'),
-  );
-  const [filter, setFilter] = useState(live.length ? 1 : 0);
-  const upcoming = upcomingPickups(schedules, pickups);
-
-  const confirmRemove = (sc: Schedule) =>
-    Alert.alert(
-      '일정을 삭제할까요?',
-      `${getChild(sc.childId).name} · ${scheduleLabel(
-        sc.days,
-        sc.weekly,
-        sc.time,
-      )}`,
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: () => removeSchedule(sc.id),
-        },
-      ],
-    );
-
-  return (
-    <ScrollView contentContainerStyle={s.page}>
-      <Text style={s.pageTitle}>픽업 현황</Text>
-      <View style={s.filters}>
-        {STATUS_FILTERS.map((f, i) => (
-          <Pressable key={f} onPress={() => setFilter(i)}>
-            <Text style={[s.filter, i === filter && s.filterOn]}>
-              {f}
-              {i === 1 && live.length ? ` ${live.length}` : ''}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {filter === 0 ? (
-        upcoming.length ? (
-          upcoming.map(u => {
-            const child = getChild(u.schedule.childId);
-            return (
-              <View key={u.key} style={s.homeRow}>
-                <Image source={childPhoto(child.id)} style={s.photo40} />
-                <View style={s.flex}>
-                  <Text style={s.homeRowTitle}>
-                    {u.isToday ? '오늘' : dateLabel(u.date)} {u.schedule.time} ·{' '}
-                    {child.name}
-                  </Text>
-                  <Text style={s.homeSub}>{u.schedule.academy}</Text>
-                </View>
-                {u.pickup ? (
-                  <Button
-                    size="sm"
-                    label="시작"
-                    onPress={() => {
-                      startPickup(u.pickup!.id);
-                      nav.navigate('PPickupLive', { id: u.pickup!.id });
-                    }}
-                  />
-                ) : null}
-              </View>
-            );
-          })
-        ) : (
-          <EmptySchedule
-            nav={nav}
-            text="앞으로 7일 안에 예정된 픽업이 없어요."
-          />
-        )
-      ) : null}
-
-      {filter === 1 ? (
-        <>
-          {live.length ? (
-            live.map(p => {
-              const child = getChild(p.childId);
-              return (
-                <Pressable
-                  key={p.id}
-                  style={s.liveCard}
-                  onPress={() => nav.navigate('PPickupLive', { id: p.id })}
-                >
-                  <View style={s.liveMap}>
-                    <View style={s.liveBadge}>
-                      <Text style={s.liveBadgeText}>진행 중</Text>
-                    </View>
-                  </View>
-                  <View style={s.liveInfo}>
-                    <Image source={childPhoto(child.id)} style={s.photo56} />
-                    <View>
-                      <Text style={[s.liveName, s.onDark]}>{child.name}</Text>
-                      <Text style={[s.liveMeta, s.onDarkSub]}>
-                        {p.altSpot ?? p.place} · {p.time}
-                      </Text>
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            })
-          ) : (
-            <View style={s.emptyBox}>
-              <Text style={s.homeSub}>진행 중인 픽업이 없어요.</Text>
-            </View>
-          )}
-          {endedToday.length ? (
-            <Text style={s.sectionTitle}>오늘 끝난 픽업</Text>
-          ) : null}
-          {endedToday.map(p => (
-            <Pressable
-              key={p.id}
-              style={s.homeRow}
-              onPress={() =>
-                p.recordId && nav.navigate('POutcome', { recordId: p.recordId })
-              }
-            >
-              <Image source={childPhoto(p.childId)} style={s.photo40} />
-              <View style={s.flex}>
-                <Text style={s.homeRowTitle}>
-                  {getChild(p.childId).name} · {p.time}
-                </Text>
-                <Text style={s.homeSub}>{p.altSpot ?? p.place}</Text>
-              </View>
-              <Badge status={p.status} />
-            </Pressable>
-          ))}
-        </>
-      ) : null}
-
-      {filter === 2 ? (
-        schedules.length ? (
-          mock.children.map(c => {
-            const mine = schedules.filter(sc => sc.childId === c.id);
-            return (
-              <View key={c.id} style={s.childGroup}>
-                <Text style={s.sectionTitle}>
-                  {c.name} · {mine.length ? `${mine.length}개` : '일정 없음'}
-                </Text>
-                {mine.map(sc => (
-                  <ScheduleRow
-                    key={sc.id}
-                    sc={sc}
-                    onRemove={() => confirmRemove(sc)}
-                  />
-                ))}
-              </View>
-            );
-          })
-        ) : (
-          <EmptySchedule nav={nav} text="등록된 일정이 없어요." />
-        )
-      ) : null}
-    </ScrollView>
-  );
-}
-
-function EmptySchedule({ nav, text }: { nav: Nav; text: string }) {
-  return (
-    <View style={s.emptyBox}>
-      <Text style={s.homeSub}>{text}</Text>
-      <Button
-        variant="outline"
-        label="픽업 일정 등록"
-        style={s.mt12}
-        onPress={() => nav.navigate('PScheduleIntro')}
-      />
-    </View>
-  );
-}
 
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const WEEK_EN = WEEKDAYS;
@@ -590,6 +269,9 @@ function RecordsTab({ nav }: { nav: Nav }) {
 
 /** 마이: Figma에 아직 없음 */
 function MyTab({ nav }: { nav: Nav }) {
+  const auth = useAuthStore(st => st.auth);
+  const signOut = useAuthStore(st => st.signOut);
+  const qc = useQueryClient();
   return (
     <ScrollView contentContainerStyle={s.page}>
       <Text style={s.pageTitle}>마이</Text>
@@ -617,6 +299,17 @@ function MyTab({ nav }: { nav: Nav }) {
         style={s.mt24}
         onPress={usePickupStore.getState().resetDemo}
       />
+      {auth ? (
+        <Button
+          variant="outline"
+          label="로그아웃 (이 휴대전화에서 연결 해제)"
+          style={s.mt24}
+          onPress={async () => {
+            await signOut();
+            qc.clear();
+          }}
+        />
+      ) : null}
       <Button
         variant="outline"
         label="처음 화면으로"
@@ -629,6 +322,8 @@ function MyTab({ nav }: { nav: Nav }) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  rootHome: { backgroundColor: '#F0F0F0' },
+  tabSpace: { paddingBottom: TAB_BAR_SPACE },
   flex: { flex: 1 },
   mt12: { marginTop: 12 },
   mt24: { marginTop: 24 },

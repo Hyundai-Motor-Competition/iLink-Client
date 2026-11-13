@@ -5,9 +5,14 @@ import { LinkApproveScreen } from '../../features/link/LinkApproveScreen';
 import { InviteAcceptScreen } from '../../features/invite/InviteAcceptScreen';
 import {
   CarConfirmScreen,
+  ChildPhotoScreen,
+  CodeEntryScreen,
   ChildProfileScreen,
-  FamilyDoneScreen,
+  FamilyIntroScreen,
+  GuardianPhotoScreen,
   GuardianProfileScreen,
+  InviteSentScreen,
+  InviteShareScreen,
   QrScanScreen,
   TermsScreen,
 } from '../../features/parent/OnboardingScreens';
@@ -15,15 +20,15 @@ import { ParentMainScreen } from '../../features/parent/ParentMainScreen';
 import {
   ScheduleAcademyScreen,
   ScheduleChildScreen,
+  ScheduleConfirmScreen,
+  ScheduleReviewScreen,
   ScheduleDoneScreen,
   ScheduleIntroScreen,
   ScheduleSpotScreen,
   ScheduleTimeScreen,
 } from '../../features/parent/ScheduleScreens';
-import {
-  OutcomeScreen,
-  PickupLiveScreen,
-} from '../../features/parent/PickupLiveScreens';
+import { OutcomeScreen } from '../../features/parent/PickupLiveScreens';
+import { PickupLiveScreen } from '../../features/parent/PickupDetailScreen';
 import {
   ChildDepartedScreen,
   ChildDoneScreen,
@@ -38,23 +43,45 @@ type Params = DemoStackParams & Omit<AuthStackParams, 'Welcome'>;
 const Stack = createNativeStackNavigator<Params>();
 
 /** 로그인 전: 랜딩(부모/자녀 선택) → Figma 기준 화면. 딥링크용 연결·초대 화면도 함께 둔다. */
-export function DemoNavigator() {
+export function DemoNavigator({
+  initialRouteName = 'Landing',
+}: {
+  initialRouteName?: 'Landing' | 'PMain';
+}) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName={initialRouteName}
+      screenOptions={{ headerShown: false }}
+    >
       <Stack.Screen name="Landing" component={LandingScreen} />
 
-      <Stack.Screen name="PQrScan" component={QrScanScreen} />
+      <Stack.Screen name="PFamilyIntro" component={FamilyIntroScreen} />
+      <Stack.Screen name="PCodeEntry" component={CodeEntryScreen} />
+      <Stack.Screen
+        name="PQrScan"
+        component={QrScanScreen}
+        options={{ statusBarStyle: 'light' }}
+      />
       <Stack.Screen name="PCarConfirm" component={CarConfirmScreen} />
       <Stack.Screen name="PTerms" component={TermsScreen} />
       <Stack.Screen name="PGuardianProfile" component={GuardianProfileScreen} />
+      <Stack.Screen name="PGuardianPhoto" component={GuardianPhotoScreen} />
       <Stack.Screen name="PChildProfile" component={ChildProfileScreen} />
-      <Stack.Screen name="PFamilyDone" component={FamilyDoneScreen} />
+      <Stack.Screen name="PChildPhoto" component={ChildPhotoScreen} />
+      <Stack.Screen name="PInviteShare" component={InviteShareScreen} />
+      <Stack.Screen
+        name="PInviteSent"
+        component={InviteSentScreen}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen name="PMain" component={ParentMainScreen} />
-      <Stack.Screen name="PScheduleIntro" component={ScheduleIntroScreen} />
       <Stack.Screen name="PScheduleChild" component={ScheduleChildScreen} />
+      <Stack.Screen name="PScheduleIntro" component={ScheduleIntroScreen} />
       <Stack.Screen name="PScheduleAcademy" component={ScheduleAcademyScreen} />
+      <Stack.Screen name="PScheduleConfirm" component={ScheduleConfirmScreen} />
       <Stack.Screen name="PScheduleSpot" component={ScheduleSpotScreen} />
       <Stack.Screen name="PScheduleTime" component={ScheduleTimeScreen} />
+      <Stack.Screen name="PScheduleReview" component={ScheduleReviewScreen} />
       {/* 저장이 끝난 뒤라 뒤로 밀어서 Step 4로 돌아가 중복 등록되지 않게 막는다 */}
       <Stack.Screen
         name="PScheduleDone"

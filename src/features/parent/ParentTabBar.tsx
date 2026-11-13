@@ -4,30 +4,41 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, font } from '../../shared/theme/tokens';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { pretendard as pf } from '../../shared/theme/tokens';
 
 export type ParentTab = 'home' | 'status' | 'records' | 'my';
 
+/** 시안(메인) 하단 탭: 검은 알약 안에서 고른 탭만 흰 알약 + 이름 */
 const TABS: { key: ParentTab; label: string; icon: ImageSourcePropType }[] = [
-  { key: 'home', label: '홈', icon: require('../../assets/images/home.png') },
+  {
+    key: 'home',
+    label: '메인',
+    icon: require('../../assets/images/v2/nav_home.png'),
+  },
   {
     key: 'status',
     label: '현황',
-    icon: require('../../assets/images/route.png'),
+    icon: require('../../assets/images/v2/nav_calendar.png'),
   },
   {
     key: 'records',
     label: '기록',
-    icon: require('../../assets/images/history_2.png'),
+    icon: require('../../assets/images/v2/nav_record.png'),
   },
-  { key: 'my', label: '마이', icon: require('../../assets/images/person.png') },
+  {
+    key: 'my',
+    label: '마이',
+    icon: require('../../assets/images/v2/nav_my.png'),
+  },
 ];
 
-const INACTIVE = '#999DA3';
+/** 탭 바가 차지하는 높이 (내용 아래 여백으로 쓴다) */
+export const TAB_BAR_SPACE = 100;
 
-/** 부모 하단 탭 바. 메인 화면과 이용 결과(P09)에서 함께 쓴다. */
+/** 부모 하단 탭 바. 화면 아래에 떠 있다 (메인 · 현황 · 기록 · 마이, 이용 결과 P09) */
 export function ParentTabBar({
   tab,
   onChange,
@@ -35,42 +46,68 @@ export function ParentTabBar({
   tab: ParentTab;
   onChange(t: ParentTab): void;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <SafeAreaView edges={['bottom']} style={s.bar}>
-      {TABS.map(t => {
-        const on = t.key === tab;
-        const color = on ? colors.primary : INACTIVE;
-        return (
-          <Pressable
-            key={t.key}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-            style={s.item}
-            onPress={() => onChange(t.key)}
-          >
-            <Image source={t.icon} style={[s.icon, { tintColor: color }]} />
-            <Text style={[s.label, { color }]}>{t.label}</Text>
-          </Pressable>
-        );
-      })}
-    </SafeAreaView>
+    <View
+      pointerEvents="box-none"
+      style={[s.wrap, { bottom: Math.max(insets.bottom - 10, 14) }]}
+    >
+      <View style={s.bar}>
+        {TABS.map(t => {
+          const on = t.key === tab;
+          return (
+            <Pressable
+              key={t.key}
+              accessibilityRole="tab"
+              accessibilityLabel={t.label}
+              accessibilityState={{ selected: on }}
+              onPress={() => onChange(t.key)}
+              style={[s.item, on && s.itemOn]}
+            >
+              <Image
+                source={t.icon}
+                style={[s.icon, { tintColor: on ? '#111200' : '#FFFFFF' }]}
+              />
+              {on ? <Text style={s.label}>{t.label}</Text> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
+/* 시안: 287 x 63pt 검은 알약(가운데), 고른 탭 92 x 57pt 흰 알약 */
 const s = StyleSheet.create({
+  wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bar: {
+    width: 287,
+    height: 63,
+    borderRadius: 32,
+    backgroundColor: '#14151A',
     flexDirection: 'row',
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 8,
+    alignItems: 'center',
+    paddingHorizontal: 3,
   },
-  item: { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 6 },
-  icon: { width: 28, height: 28 },
-  label: { fontSize: font.tiny, fontWeight: '500' },
+  item: {
+    flex: 1,
+    height: 57,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemOn: {
+    flex: 0,
+    width: 92,
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+  },
+  icon: { width: 21, height: 21 },
+  label: {
+    fontFamily: pf.medium,
+    fontSize: 14,
+    letterSpacing: -0.3,
+    color: '#111200',
+  },
 });

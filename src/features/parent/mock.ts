@@ -1,10 +1,22 @@
 // Figma 와이어프레임에 쓰인 예시 값. 실제 API 연결 전까지 화면에서 사용한다.
 export const mock = {
   guardian: { name: '김현대', alias: '엄마' },
-  vehicle: { model: '아이오닉 5', plate: '123가 4567' },
+  vehicle: { model: '아이오닉 5', modelEn: 'IONIQ 5', plate: '123가 4567' },
   children: [
-    { id: 1, name: '김현우', school: '링크고등학교 1학년', age: 17 },
-    { id: 2, name: '김현지', school: '링크중학교 2학년', age: 15 },
+    {
+      id: 1,
+      name: '김현우',
+      school: '링크고등학교 1학년',
+      grade: '중학교 2학년',
+      age: 17,
+    },
+    {
+      id: 2,
+      name: '김현지',
+      school: '링크중학교 2학년',
+      grade: '초등학교 4학년',
+      age: 15,
+    },
   ],
   academies: [
     { name: '대치동수학임팩트 학원', addr: '서울 강남구 테헤란로 12' },
