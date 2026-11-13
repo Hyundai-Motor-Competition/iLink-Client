@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "64154716458",
+    "project_id": "ilink-dev-d6624",
+    "storage_bucket": "ilink-dev-d6624.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:64154716458:android:1a5ac8b3d347f8ecc67653",
+        "android_client_info": {
+          "package_name": "com.ilink.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5RZ7w_TE9V9wlsx7jQJjlwrEtQjV8AOs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -22,6 +22,7 @@ import {
 } from '../../shared/ui/kit';
 import { colors, font, radius, spacing } from '../../shared/theme/tokens';
 import { KEYWORD, mock } from './mock';
+import { useSpotRecommendations } from '../spot/useSpotRecommendations';
 import { DAYS, scheduleLabel, useScheduleDraft } from './scheduleDraft';
 import { childPhoto } from './children';
 import { usePickupStore } from './pickupStore';
@@ -268,9 +269,21 @@ function PinGlyph() {
   );
 }
 
-/** Step 3 · 픽업 장소와 대안 장소 */
+/**
+ * Step 3 · 픽업 장소와 대안 장소.
+ * 서버에 등록된 학원이면 SPOT-04 추천 후보를 보여 주고, 샘플 데이터로 진행 중이면 샘플 목록을 쓴다.
+ */
 export function ScheduleSpotScreen({ navigation }: P<'PScheduleSpot'>) {
   const [extra, setExtra] = useState(0);
+  const { academyId, academyLocation } = useScheduleDraft();
+  const rec = useSpotRecommendations(academyId, academyLocation);
+  const spots =
+    rec.data?.supported && rec.data.items.length
+      ? rec.data.items.map(c => ({
+          name: c.name,
+          meta: [c.meta, ...c.cautions].join(' · '),
+        }))
+      : mock.spots;
   return (
     <Screen
       header={
@@ -290,7 +303,7 @@ export function ScheduleSpotScreen({ navigation }: P<'PScheduleSpot'>) {
       <Text style={s.sectionLabel}>추천 픽업 장소</Text>
       <Image source={img.mapSpots} style={s.mapSpots} resizeMode="cover" />
       <View style={s.spotList}>
-        {mock.spots.map((sp, i) => (
+        {spots.map((sp, i) => (
           <View key={sp.name} style={s.spotCard}>
             <Image source={i ? img.spotAlt : img.spotMain} style={s.spotIcon} />
             <View style={s.flex}>

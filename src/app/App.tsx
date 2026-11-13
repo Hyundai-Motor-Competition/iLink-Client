@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ApiError } from '../api/errors';
+import { usePushRegistration } from '../services/usePushRegistration';
 import { useAuthStore } from '../stores/authStore';
 import { linking } from './navigation/linking';
 import { RootNavigator } from './navigation/RootNavigator';
@@ -19,6 +20,12 @@ const queryClient = new QueryClient({
   },
 });
 
+/** QueryClientProvider 안에서 푸시 등록 (푸시가 오면 쿼리를 다시 받는다) */
+function PushRegistration() {
+  usePushRegistration();
+  return null;
+}
+
 export default function App() {
   const restore = useAuthStore(s => s.restore);
   useEffect(() => {
@@ -28,6 +35,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
+        <PushRegistration />
         <StatusBar barStyle="dark-content" />
         <NavigationContainer linking={linking}>
           <RootNavigator />

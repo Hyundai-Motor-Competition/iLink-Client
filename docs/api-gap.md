@@ -33,13 +33,12 @@
 - LINK-03 응답: 만료(410) · 없음(404) · 이미 연결(409)을 HTTP 코드로 주는지. 404는 실제로 확인했다.
 - 텔레메트리 단위: Pleos 내비 `DrivingState.duration` / `distance` 단위를 초 · m로 가정. 에뮬레이터에서 확인 후 변환 필요.
 
-## 실제 호출로 확인한 것 (2026.11.11, `scripts/swagger-smoke.py`)
+## 실제 호출로 확인한 것 (2026.11.11 · 11.13 다시 확인, `scripts/swagger-smoke.py`)
 
-Swagger의 API 60개를 개발 서버에 모두 불러 봤다. 58개는 정상 응답, 2개는 아래 표대로다. 전체 결과는 [api-smoke-result.md](api-smoke-result.md).
+2026.11.13 기준 Swagger API 62개(SPOT-04 · SET-11 추가)를 모두 불러 61개 정상 응답. 나머지 1개는 아래 표대로다. (11.11에 502였던 SET-01 학원 검색은 지금 정상) 전체 결과는 [api-smoke-result.md](api-smoke-result.md).
 
 | API | 결과 | 확인할 것 |
 |---|---|---|
-| SET-01 학원 검색 | 502 (Cloudflare) | 외부 지도 API 연결 문제로 보임 (Swagger의 502 MAP_API_UNAVAILABLE). 서버 확인 필요 |
 | NOTI-03 알림 다시 보내기 | 429 RESEND_TOO_SOON | 규칙대로 거절 (마지막 발송 뒤 1분). 성공 경로는 1분 뒤에 다시 확인해야 함 |
 
 Swagger와 실제 서버가 다른 점 (클라이언트에 반영 필요):
@@ -56,3 +55,10 @@ Swagger와 실제 서버가 다른 점 (클라이언트에 반영 필요):
 - **LINK-02** 연결 상태는 `pollAfterSeconds`보다 빨리 부르면 429
 - **탑승 인식**: DOOR_CYCLE은 자녀가 합류 안내를 받은(MEETING) 뒤에만 탑승으로 잡힌다. 그 뒤 10초 안에만 SES-12 탑승 취소 가능
 - **Cloudflare**: 기본 User-Agent가 없는 HTTP 클라이언트(파이썬 urllib 등)는 403(1010)으로 막힌다. 앱(OkHttp · RN fetch)은 해당 없음
+
+2026.11.13 서버 변경 (클라이언트 영향 큼):
+
+- **가드 G6 (정차)**: 합류 안내는 차량이 정차(SIG-02 STOPPED)한 뒤에만 나간다. 자동 발송 · CALL-02 모두 적용. 도착 3분 전(또는 700m)에는 대신 자녀에게 **실내 준비 알림**(PREPARE)을 보낸다. 차량 앱의 「도착 3분 전 합류 안내」 문구 · 흐름을 바꿔야 한다
+- **SET-11 자녀 위치 사용** `PUT /v1/families/me/child-location {enabled}`: 기본 꺼짐. 꺼져 있으면 SIG-04가 403 LOCATION_CONSENT_REQUIRED. 보호자 설정 화면에 스위치가 필요하다
+- **LINK-04** `platform`이 필수 (ANDROID · IOS)
+- **SPOT-04 장소 추천** `GET /v1/pickup-spot-recommendations?academyId&origin=위도,경도[&arriveAt]`: 학원 근처 길가 정차(CURB_STOP) · 공영주차장 후보를 순위대로. 결과에 spotId가 없어서, 보호자가 고르면 SPOT-02로 저장해야 차량이 길안내 · 확정(SES-04)할 수 있다. `cautions`: ENFORCEMENT_CAMERA_NEAR(단속 카메라 근처), LINE_DATA_2021(데이터 기준 안내)

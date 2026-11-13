@@ -46,6 +46,27 @@ export const spotApi = {
 
   remove: (spotId: number, idempotencyKey: string) =>
     api.delete<void>(`/v1/pickup-spots/${spotId}`, { idempotencyKey }),
+
+  /**
+   * SPOT-04 픽업 장소 추천: 학원 근처 공영주차장 · 길가 정차 후보를 순위대로.
+   * origin은 출발 위치 '위도,경도'. 지원 지역 밖이면 supported = false, items = [].
+   * 결과에는 spotId가 없다. 보호자가 고르면 SPOT-02로 저장해야 차량이 길안내할 수 있다.
+   */
+  recommend: (q: {
+    academyId: number;
+    origin: { lat: number; lng: number };
+    arriveAt?: string;
+  }) =>
+    api.get<Schemas['SpotRecommendationsResponse']>(
+      '/v1/pickup-spot-recommendations',
+      {
+        query: {
+          academyId: q.academyId,
+          origin: `${q.origin.lat},${q.origin.lng}`,
+          arriveAt: q.arriveAt,
+        },
+      },
+    ),
 };
 
 export const setupApi = {

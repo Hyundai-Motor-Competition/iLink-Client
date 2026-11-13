@@ -128,7 +128,7 @@ def main():
 
     consents = [{"type": t, "agreed": True} for t in ["TERMS", "PRIVACY", "LOCATION", "PUSH"]]
     _, g = api.call("LINK-04", "POST", "/v1/vehicle-links", body={
-        "code": code.get("code"), "mode": "NEW", "consents": consents, "platform": "ANDROID",
+        "code": code.get("code"), "mode": "NEW", "consents": consents, "platform": "ANDROID",  # platform 필수 (2026.11.13~)
         "pushToken": f"test-push-{run}", "name": "테스트보호자",
     })
     g = g or {}
@@ -171,6 +171,8 @@ def main():
     api.call("SET-04", "GET", f"/v1/children/{child_id}/schedules", token=gtok)
     api.call("SET-03", "PUT", f"/v1/schedules/{sched_id}", token=gtok, body={**sched_body, "classEndTime": "18:10"})
     api.call("SET-06", "PUT", "/v1/families/me/call-mode", token=gtok, body={"joinCallMode": "AUTO"})
+    # SET-11 자녀 위치 사용 (기본 꺼짐). 켜야 SIG-04 자녀 위치를 받는다
+    api.call("SET-11", "PUT", "/v1/families/me/child-location", token=gtok, body={"enabled": True})
 
     loc = academy["location"]
     spot = lambda name, d: {"academyId": academy_id, "name": name, "stopPoint": {"lat": loc["lat"] + d, "lng": loc["lng"]},
@@ -193,6 +195,10 @@ def main():
     api.call("SET-09", "GET", "/v1/vehicles/me/weekly-pickups", token=vtok)
     api.call("SET-10", "GET", "/v1/vehicles/me/settings-summary", token=vtok)
     api.call("SPOT-01", "GET", "/v1/families/me/pickup-spots", token=vtok)
+    # SPOT-04 장소 추천 (차량 · 보호자 둘 다). origin은 '위도,경도' 필수
+    origin = f"{loc['lat'] - 0.008},{loc['lng'] + 0.003}"
+    api.call("SPOT-04", "GET", "/v1/pickup-spot-recommendations", token=vtok, query={"academyId": academy_id, "origin": origin})
+    api.call("SPOT-04", "GET", "/v1/pickup-spot-recommendations", token=gtok, query={"academyId": academy_id, "origin": origin})
     _, sv = api.call("SES-02", "POST", "/v1/pickup-sessions", token=vtok, body={"scheduleIds": [sched_id], "date": today.isoformat()}, idem=True)
     sid = (sv or {}).get("sessionId")
     ver = {"v": (sv or {}).get("stateVersion", 0), "spot": 0}
@@ -224,8 +230,12 @@ def main():
     api.call("SET-06", "PUT", "/v1/families/me/call-mode", token=gtok, body={"joinCallMode": "GUARDIAN_CONFIRM"})
     api.call("SIG-01", "POST", f"/v1/pickup-sessions/{sid}/vehicle-telemetry", token=vtok, body={
         "observedAt": now_iso(), "navEtaSeconds": 150, "remainingMeters": 600, "location": {"lat": loc["lat"] - 0.003, "lng": loc["lng"]}, "gear": "D"})
+    # 가드 G6(2026.11.13~): 합류 안내는 차가 정차(STOPPED)한 뒤에만 나간다 (자동 · CALL-02 모두)
+    api.call("SIG-02", "POST", f"/v1/pickup-sessions/{sid}/vehicle-events", token=vtok, body={
+        "eventId": str(uuid.uuid4()), "type": "STOPPED", "occurredAt": now_iso(), "location": spot("", -0.0002)["stopPoint"]})
     time.sleep(2)
     s = refresh()
+    print("    합류 안내 가드:", (s.get("call") or {}).get("guard"), "· ETA:", (s.get("eta") or {}).get("remainingSeconds"))
     call_id = (s.get("call") or {}).get("callId")
     if not call_id:
         # 자동 발송이 안 됐으면 보호자 확인형 직접 보내기(CALL-02)로 만든다
@@ -245,9 +255,7 @@ def main():
     track(api.call("SES-06 DEL", "DELETE", f"/v1/pickup-sessions/{sid}/hold", token=gtok, query={"stateVersion": ver["v"]}, idem=True)[1])
     api.call("SIG-05", "POST", f"/v1/pickup-sessions/{sid}/help-requests", token=ctok, body={"type": "CANT_FIND_CAR"}, idem=True)
 
-    # 정차 → 뒷문 열림·닫힘(탑승 인식) → 10초 안에 탑승 취소 → 예외 → 완료
-    api.call("SIG-02", "POST", f"/v1/pickup-sessions/{sid}/vehicle-events", token=vtok, body={
-        "eventId": str(uuid.uuid4()), "type": "STOPPED", "occurredAt": now_iso(), "location": spot("", -0.0002)["stopPoint"]})
+    # (정차는 위에서) 뒷문 열림·닫힘(탑승 인식) → 10초 안에 탑승 취소 → 예외 → 완료
     api.call("SIG-02", "POST", f"/v1/pickup-sessions/{sid}/vehicle-events", token=vtok, body={
         "eventId": str(uuid.uuid4()), "type": "DOOR_CYCLE", "occurredAt": now_iso(), "door": "REAR_RIGHT"})
     b = refresh()
@@ -278,6 +286,8 @@ def main():
     _, p = api.call("SES-04", "PUT", f"/v1/pickup-sessions/{sid2}/route", token=vtok, body={"spotId": spot1, "stateVersion": v2}, idem=True)
     api.call("SIG-01", "POST", f"/v1/pickup-sessions/{sid2}/vehicle-telemetry", token=vtok, body={
         "observedAt": now_iso(), "navEtaSeconds": 150, "remainingMeters": 600, "gear": "D"})
+    api.call("SIG-02", "POST", f"/v1/pickup-sessions/{sid2}/vehicle-events", token=vtok, body={
+        "eventId": str(uuid.uuid4()), "type": "STOPPED", "occurredAt": now_iso(), "location": spot("", 0.0002)["stopPoint"]})
     _, p = api.call("SES-03", "GET", f"/v1/pickup-sessions/{sid2}", token=vtok)
     _, c = api.call("CALL-02", "POST", f"/v1/pickup-sessions/{sid2}/calls", token=vtok, body={"stateVersion": (p or {}).get("stateVersion", 0)}, idem=True)
     _, p = api.call("SES-03", "GET", f"/v1/pickup-sessions/{sid2}", token=vtok)

@@ -7,11 +7,18 @@ export const DAYS = ['월', '화', '수', '목', '금', '토', '일'] as const;
 type Draft = {
   childId: number;
   academy: string;
+  /** 서버에 등록된 학원이면 id와 위치 (SPOT-04 추천에 쓴다). 샘플 데이터로 진행 중이면 없음 */
+  academyId?: number;
+  academyLocation?: { lat: number; lng: number };
   days: boolean[];
   weekly: boolean;
   time: string;
   setChild(id: number): void;
-  setAcademy(name: string): void;
+  setAcademy(
+    name: string,
+    academyId?: number,
+    location?: { lat: number; lng: number },
+  ): void;
   toggleDay(i: number): void;
   setWeekly(v: boolean): void;
   reset(): void;
@@ -23,12 +30,15 @@ const initial = {
   days: [true, false, true, false, true, false, false],
   weekly: true,
   time: '18:10',
+  academyId: undefined as number | undefined,
+  academyLocation: undefined as { lat: number; lng: number } | undefined,
 };
 
 export const useScheduleDraft = create<Draft>(set => ({
   ...initial,
   setChild: childId => set({ childId }),
-  setAcademy: academy => set({ academy }),
+  setAcademy: (academy, academyId, academyLocation) =>
+    set({ academy, academyId, academyLocation }),
   toggleDay: i =>
     set(s => ({ days: s.days.map((on, j) => (j === i ? !on : on)) })),
   setWeekly: weekly => set({ weekly }),
