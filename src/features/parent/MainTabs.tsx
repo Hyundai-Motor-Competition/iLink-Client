@@ -23,6 +23,7 @@ import {
 import { useLiveList, useServerLive } from './liveHooks';
 import type { LiveVM } from './liveModel';
 import { TAB_BAR_SPACE } from './ParentTabBar';
+import { TileMap } from '../../shared/ui/TileMap';
 import { upcomingPickups, usePickupStore, ymd } from './pickupStore';
 import { reviewLabel } from './scheduleDraft';
 
@@ -506,7 +507,21 @@ function LiveMapCard({ live, onPress }: { live: LiveVM; onPress(): void }) {
       style={({ pressed }) => [pressed && s.pressed]}
     >
       <View style={s.mapCard}>
-        <Image source={img.map} resizeMode="cover" style={s.mapCardImg} />
+        {live.vehicle ? (
+          // 자녀 · 차량 앱과 같은 OSM 지도에 차 위치
+          <TileMap
+            style={s.mapCardImg}
+            points={[live.vehicle]}
+            padding={{ top: 20, bottom: 70, side: 40 }}
+          >
+            {project => {
+              const q = project(live.vehicle!);
+              return <View style={[s.mapCar, { left: q.x - 9, top: q.y - 9 }]} />;
+            }}
+          </TileMap>
+        ) : (
+          <Image source={img.map} resizeMode="cover" style={s.mapCardImg} />
+        )}
         <View style={s.mapShade1} />
         <View style={s.mapShade2} />
         <View style={s.livePill}>
@@ -911,6 +926,15 @@ const s = StyleSheet.create({
     padding: 18,
   },
   mapCardImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
+  mapCar: {
+    position: 'absolute',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 3,
+    borderColor: v2.white,
+    backgroundColor: '#3A75DA',
+  },
   mapShade1: {
     ...StyleSheet.absoluteFill,
     top: '35%',

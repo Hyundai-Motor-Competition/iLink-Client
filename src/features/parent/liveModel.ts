@@ -25,6 +25,8 @@ export type LiveVM = {
   arrived: boolean;
   /** 0~1 (출발 → 도착) */
   progress: number;
+  /** 서버가 받은 차 위치 (지도 카드). 아직 없으면 undefined */
+  vehicle?: { lat: number; lng: number };
   steps: StepVM[];
   held: boolean;
   callId?: number;
@@ -165,6 +167,10 @@ export function fromSession(
         : undefined,
     arrived: stopped,
     progress,
+    vehicle:
+      v.vehicleLocation?.lat != null && v.vehicleLocation?.lng != null
+        ? { lat: v.vehicleLocation.lat, lng: v.vehicleLocation.lng }
+        : undefined,
     steps,
     held: !!v.call?.held,
     callId: v.call?.callId,
