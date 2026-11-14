@@ -18,6 +18,7 @@ import {
 import type { DemoStackParams } from '../../app/navigation/types';
 import { pretendard as pf, v2 } from '../../shared/theme/tokens';
 import { BottomSheet } from '../../shared/ui/kit';
+import { linkCodeFrom, QrCamera } from '../../shared/ui/QrCamera';
 import {
   CenterTitle,
   OnboardScreen,
@@ -97,8 +98,10 @@ function Bullet({ text }: { text: string }) {
 
 /**
  * 가족 프로필 등록 2 · QR 촬영
- * 배경은 시안의 차량 실내 사진(BG_IMG)을 화면 전체에 깔고, 아래쪽은 어둡게 덮는다.
- * 촬영 버튼을 누르면 차량 QR을 읽은 것으로 보고 넘어간다.
+ * 시안 메모: 카메라 켜짐 · 카메라가 화면 전체를 차지 · 화면 하단 딤.
+ * 뒤 카메라를 화면 전체에 띄우고 차량 QR을 비추면 바로 읽는다.
+ * 카메라가 없는 시뮬레이터 · 권한 거부 때는 시안의 차량 실내 사진을 대신 깐다.
+ * 촬영 버튼: 카메라가 없을 때 시험용 차량의 연결 코드로 넘어간다.
  */
 export function QrScanScreen({ navigation, route }: P<'PQrScan'>) {
   const patch = useFamilyDraft(d => d.patch);
@@ -131,8 +134,14 @@ export function QrScanScreen({ navigation, route }: P<'PQrScan'>) {
   return (
     <View style={s.camRoot}>
       <StatusBar barStyle="light-content" />
-      {/* 시안 배경(assets/가족프로필등록2_BG_IMG.png)을 그대로 깐다 */}
-      <Image source={img.qrBg} style={s.camFill} resizeMode="cover" />
+      <QrCamera
+        fallback={img.qrBg}
+        onCode={value => {
+          const code = linkCodeFrom(value);
+          if (code) shoot(code);
+          else setError('iLink 차량 화면의 QR 코드를 찍어주세요.');
+        }}
+      />
       <BottomDim />
       <View style={s.frame}>
         <View style={[s.corner, s.tl]} />
@@ -207,7 +216,12 @@ export function CarConfirmScreen({ navigation }: P<'PCarConfirm'>) {
       />
       <Image source={img.car} style={s.car} resizeMode="contain" />
       <View style={s.plate}>
-        <Text style={s.plateText}>
+        <Text
+          style={s.plateText}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
           {link?.vehicleModel ?? mock.vehicle.modelEn} |{'  '}
           {link?.plateNumberMasked ?? mock.vehicle.plate}
         </Text>
@@ -764,7 +778,6 @@ const s = StyleSheet.create({
 
   // QR 촬영
   camRoot: { flex: 1, backgroundColor: '#0F1000' },
-  camFill: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
   dim: { position: 'absolute', left: 0, right: 0, top: '58%', bottom: 0 },
   dimRow: { flex: 1, backgroundColor: '#0F1000' },
   dimSolid: { height: 0 },
@@ -845,9 +858,12 @@ const s = StyleSheet.create({
   // 차량 확인
   prevBtn: { width: 106 },
   car: { width: 274, height: 130, alignSelf: 'center', marginTop: 146 },
+  // 칩 폭은 글자에 맞춘다 (시안 230pt가 최소). 화면보다 길면 한 줄을 지키며 글자를 줄인다
   plate: {
     alignSelf: 'center',
-    width: 230,
+    minWidth: 230,
+    maxWidth: '100%',
+    paddingHorizontal: 28,
     height: 47,
     borderRadius: 21,
     backgroundColor: v2.chip,

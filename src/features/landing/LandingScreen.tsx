@@ -1,106 +1,152 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DemoStackParams } from '../../app/navigation/types';
-import { Screen } from '../../shared/ui/kit';
-import { colors, font, radius, spacing } from '../../shared/theme/tokens';
+import { pretendard as pf, v2 } from '../../shared/theme/tokens';
+import { PillButton } from '../../shared/ui/onboard';
 
 type Props = NativeStackScreenProps<DemoStackParams, 'Landing'>;
+type Role = 'parent' | 'child';
 
-const landingBg = require('../../assets/images/child/bg_bluegreen.png');
+const face = {
+  parent: require('../../assets/images/landing/face_parent.png'),
+  child: require('../../assets/images/landing/face_child.png'),
+};
 
-/** 랜딩: Figma에 아직 없어 부모/자녀 진입 선택만 둔다. */
+/*
+ * 모드 선택 (랜딩): 누가 사용하시나요? → 부모 / 자녀 카드 → [다음으로]
+ * 치수는 시안 PNG(390pt 폭)에서 잰 값이다. 시안 기준 상태 표시줄 47pt, 아래 여백 21pt.
+ */
+const DESIGN_STATUS_BAR = 47;
+const DESIGN_BOTTOM = 21;
+
 export function LandingScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
+  const [role, setRole] = useState<Role | null>(null);
+  const next = () => {
+    if (role === 'parent') navigation.navigate('PFamilyIntro');
+    else if (role === 'child') navigation.navigate('CInvite');
+  };
   return (
-    <Screen bg={landingBg} scroll={false} style={styles.body}>
-      <View style={styles.top}>
-        <Text style={styles.logo}>iLink</Text>
-        <Text style={styles.sub}>
-          아이 픽업을 차량과 휴대폰으로{'\n'}함께 챙겨요.
-        </Text>
+    <View
+      style={[
+        s.root,
+        {
+          paddingTop: Math.max(insets.top, DESIGN_STATUS_BAR),
+          paddingBottom: Math.max(insets.bottom, DESIGN_BOTTOM),
+        },
+      ]}
+    >
+      <View style={s.head}>
+        <Text style={s.mode}>모드 선택</Text>
+        <Text style={s.title}>누가 사용하시나요?</Text>
       </View>
-      <View style={styles.cards}>
+      <View style={s.cards}>
         <RoleCard
-          emoji="부모"
-          title="부모"
-          desc="차량을 연결하고 자녀의 픽업 일정을 관리해요."
-          onPress={() => navigation.navigate('PFamilyIntro')}
+          label="부모"
+          image={face.parent}
+          selected={role === 'parent'}
+          onPress={() => setRole('parent')}
         />
         <RoleCard
-          emoji="자녀"
-          title="자녀"
-          desc="부모님의 초대를 받고 픽업 안내를 확인해요."
-          onPress={() => navigation.navigate('CInvite')}
+          label="자녀"
+          image={face.child}
+          selected={role === 'child'}
+          onPress={() => setRole('child')}
         />
       </View>
-    </Screen>
+      <View style={s.footer}>
+        <PillButton label="다음으로" onPress={next} />
+      </View>
+    </View>
   );
 }
 
 function RoleCard({
-  emoji,
-  title,
-  desc,
+  label,
+  image,
+  selected,
   onPress,
 }: {
-  emoji: string;
-  title: string;
-  desc: string;
+  label: string;
+  image: number;
+  selected: boolean;
   onPress(): void;
 }) {
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={[s.card, selected && s.cardOn]}
     >
-      <View style={styles.emojiWrap}>
-        <Text style={styles.emoji}>{emoji}</Text>
+      <View style={s.illu}>
+        <Image source={image} style={s.face} resizeMode="contain" />
       </View>
-      <View style={styles.cardText}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Text style={styles.cardDesc}>{desc}</Text>
-      </View>
-      <Text style={styles.chev}>›</Text>
+      <Text style={s.cardLabel}>{label}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  body: { justifyContent: 'space-between', paddingTop: 120, paddingBottom: 40 },
-  top: { gap: 12 },
-  logo: { fontSize: 40, fontWeight: '700', color: colors.primary },
-  sub: {
-    fontSize: font.heading,
-    lineHeight: 30,
-    color: colors.text,
-    fontWeight: '600',
+const CARD_H = 189.5;
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#EBEBEB' },
+  // '모드 선택' 글자 가운데 249pt, 제목 가운데 295pt (시안 절대 위치)
+  head: { marginTop: 191, alignItems: 'center' },
+  mode: {
+    fontFamily: pf.semibold,
+    fontSize: 16,
+    lineHeight: 22,
+    letterSpacing: -0.3,
+    color: v2.ink,
   },
-  cards: { gap: 12 },
-  card: {
+  title: {
+    marginTop: 15,
+    fontFamily: pf.bold,
+    fontSize: 32,
+    lineHeight: 40,
+    letterSpacing: -0.8,
+    color: v2.ink,
+  },
+  // 카드는 버튼 위 14pt에 붙는다
+  cards: {
+    marginTop: 'auto',
+    marginBottom: 14.5,
+    paddingHorizontal: 16,
     flexDirection: 'row',
+    gap: 6,
+  },
+  card: {
+    flex: 1,
+    height: CARD_H,
+    borderRadius: 24,
+    backgroundColor: v2.white,
     alignItems: 'center',
-    gap: spacing.md,
-    padding: 20,
-    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bg,
+    borderColor: 'transparent',
   },
-  cardPressed: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  emojiWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.primarySoft,
+  cardOn: { borderColor: v2.ink },
+  illu: {
+    marginTop: 18,
+    width: 114,
+    height: 114,
+    borderRadius: 57,
+    backgroundColor: '#FCFBFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: { fontSize: 15, fontWeight: '700', color: colors.primary },
-  cardText: { flex: 1, gap: 4 },
-  cardTitle: { fontSize: font.heading, fontWeight: '700', color: colors.text },
-  cardDesc: { fontSize: font.caption, color: colors.subText },
-  chev: { fontSize: 28, color: colors.muted },
+  face: { width: 88, height: 76 },
+  cardLabel: {
+    position: 'absolute',
+    top: 145,
+    fontFamily: pf.semibold,
+    fontSize: 16,
+    lineHeight: 22,
+    letterSpacing: -0.3,
+    color: v2.ink,
+  },
+  footer: { paddingHorizontal: 16 },
 });

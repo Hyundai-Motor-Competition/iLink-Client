@@ -110,6 +110,9 @@ if [ "$ANDROID" = yes ]; then
 fi
 if [ "$IOS" = yes ]; then
   xcrun simctl bootstatus "$UDID" -b > /dev/null
+  # 이전 시연의 로그인 · 가족 정보를 지우고 처음 화면에서 시작한다
+  xcrun simctl uninstall "$UDID" "$MOBILE_PKG" 2>/dev/null || true
+  xcrun simctl keychain "$UDID" reset 2>/dev/null || true
   xcrun simctl install "$UDID" "$MOBILE/ios/build/dd/Build/Products/Release-iphonesimulator/ILinkMobile.app"
   xcrun simctl privacy "$UDID" grant notifications "$MOBILE_PKG" 2>/dev/null || true
   xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 || true
