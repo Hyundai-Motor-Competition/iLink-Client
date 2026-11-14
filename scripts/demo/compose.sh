@@ -2,6 +2,7 @@
 # 따로 녹화한 세 화면을 한 영상(1920x1080)으로 합친다. Mac에서 실행 (ffmpeg · swift 필요).
 #   왼쪽: 차량 디스플레이 · 오른쪽: 자녀(Android) · 부모(iOS) · 위: step.sh 로 남긴 단계 자막
 #   scripts/demo/compose.sh [결과.mp4]
+#   LABEL_ANDROID="보호자 · Android" LABEL_IOS="자녀 · iOS" scripts/demo/compose.sh   기기 이름표 바꾸기
 #   CUTS="120-150,300-330" scripts/demo/compose.sh   합친 영상에서 그 구간(초)을 잘라 낸다 (기다리는 시간 줄이기)
 # demo-rec/ 에 car-*.webm · child-*.webm · parent.mov 와 각 *.start · *.end, marks*.txt 가 있어야 한다.
 # 다른 컴퓨터(Windows)에서 녹화한 파일은 그 컴퓨터의 demo-rec/ 내용을 그대로 이 Mac의 demo-rec/ 로 복사한다
@@ -41,8 +42,8 @@ CAR_Y=$(( TOP + (PH + 2 * B - CAR_H) / 2 ))
 LABEL_Y=$((TOP + PH + 2 * B + 12))
 swift "$CAP" base "$TMP/base.png" $W $H \
   "$((CAR_X + CAR_W / 2)),$((CAR_Y + CAR_H + 16)),차량 디스플레이 · Pleos Connect" \
-  "$((CHILD_X + CHILD_OW / 2)),$LABEL_Y,자녀 · Android" \
-  "$((PARENT_X + PARENT_OW / 2)),$LABEL_Y,부모 · iOS"
+  "$((CHILD_X + CHILD_OW / 2)),$LABEL_Y,${LABEL_ANDROID:-자녀 · Android}" \
+  "$((PARENT_X + PARENT_OW / 2)),$LABEL_Y,${LABEL_IOS:-부모 · iOS}"
 swift "$CAP" phone "$TMP/frame_child.png" $CHILD_OW $((PH + 2 * B)) android $CHILD_W $PH $B
 swift "$CAP" phone "$TMP/frame_parent.png" $PARENT_OW $((PH + 2 * B)) ios $PARENT_W $PH $B
 
