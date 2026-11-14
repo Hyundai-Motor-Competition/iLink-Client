@@ -13,7 +13,6 @@
 ![Android](https://img.shields.io/badge/Android-FCM-3ddc84?logo=android&logoColor=white)
 
 [차량 앱 (iLink-Vehicle)](https://github.com/Hyundai-Motor-Competition/iLink-Vehicle) ·
-[기획안](https://docs.google.com/spreadsheets/d/100loJGe8NF_Yxbjat_zQi9Y1dwDjXLRuzn82QDN2BA0/edit) ·
 [시연 방법](docs/demo.md)
 
 </div>
