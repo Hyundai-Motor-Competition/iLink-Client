@@ -34,6 +34,12 @@ if mode == "base" {
   bgColor.setFill()
   NSRect(x: 0, y: 0, width: W, height: H).fill()
   for spec in a.dropFirst(5) {
+    // "NOTE:글자" → 왼쪽 위 작은 안내 문구
+    if spec.hasPrefix("NOTE:") {
+      let attr: [NSAttributedString.Key: Any] = [.font: font(17, false), .foregroundColor: NSColor(white: 0.30, alpha: 1)]
+      NSAttributedString(string: String(spec.dropFirst(5)), attributes: attr).draw(at: NSPoint(x: 24, y: 8))
+      continue
+    }
     let p = spec.split(separator: ",", maxSplits: 2).map(String.init)
     draw(p[2], center: CGFloat(Double(p[0])!), top: CGFloat(Double(p[1])!), size: 26, bold: true,
          color: NSColor(white: 0.22, alpha: 1))

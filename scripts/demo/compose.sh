@@ -15,7 +15,7 @@ CAP="$(dirname "$0")/caption.swift"
 command -v ffmpeg > /dev/null || { echo "ffmpeg가 없어요: brew install ffmpeg"; exit 1; }
 
 # 화면 배치 (1920x1080): 위 기기 · 그 아래 이름표 · 맨 아래 자막(높이 CAP_H)
-W=1920; H=1080; TOP=34; PH=840; GAP=40; CAP_H=96
+W=1920; H=1080; TOP=40; PH=840; GAP=40; CAP_H=96
 # 시작 · 끝 시각 → 공통 시간축 (모든 조각 중 가장 이른 시작 ~ 가장 늦은 끝)
 read -r T0 T1 <<<"$(py "
 import glob
@@ -43,7 +43,8 @@ LABEL_Y=$((TOP + PH + 2 * B + 12))
 swift "$CAP" base "$TMP/base.png" $W $H \
   "$((CAR_X + CAR_W / 2)),$((CAR_Y + CAR_H + 16)),차량 디스플레이 · Pleos Connect" \
   "$((CHILD_X + CHILD_OW / 2)),$LABEL_Y,${LABEL_ANDROID:-자녀 · Android}" \
-  "$((PARENT_X + PARENT_OW / 2)),$LABEL_Y,${LABEL_IOS:-부모 · iOS}"
+  "$((PARENT_X + PARENT_OW / 2)),$LABEL_Y,${LABEL_IOS:-부모 · iOS}" \
+  ${NOTE:+"NOTE:$NOTE"}
 swift "$CAP" phone "$TMP/frame_child.png" $CHILD_OW $((PH + 2 * B)) android $CHILD_W $PH $B
 swift "$CAP" phone "$TMP/frame_parent.png" $PARENT_OW $((PH + 2 * B)) ios $PARENT_W $PH $B
 
@@ -64,7 +65,8 @@ place() { # 이름 폭 높이 x y   (이름-*.webm 조각들 또는 parent.mov)
     d=$(py "print(round(max(0.1,$en-$st),3))")
     local real; real=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f" | tr -d '\r')
     py "import sys; sys.exit(0 if $real > $d - 15 else 1)" || echo "  주의: $(basename "$f") 녹화가 ${real}초에서 끊겼어요 (녹화 시간 ${d}초). 그 뒤는 마지막 화면으로 채워요."
-    INPUTS+=(-i "$f")
+    # simctl 녹화(.mov)는 DTS가 어긋나 있어 그대로 디코딩하면 화면 시각이 앞당겨진다 → DTS를 무시하고 PTS를 쓴다
+    if [[ "$f" == *.mov ]]; then INPUTS+=(-fflags +igndts -i "$f"); else INPUTS+=(-i "$f"); fi
     FILTER+="[$idx:v]setpts=PTS-STARTPTS,fps=30,scale=$w:$h:flags=lanczos,setsar=1,tpad=stop_mode=clone:stop_duration=600,trim=duration=$d,setpts=PTS-STARTPTS[s$idx];"
     parts+="[s$idx]"; idx=$((idx + 1))
   done
