@@ -40,8 +40,4 @@ export const useFamilyDraft = create<FamilyDraft>(set => ({
   patch: p => set(p),
 }));
 
-/** "김현지" → "현지". 두 글자 이하 한글 이름이나 영문은 그대로 */
-export function givenName(full: string) {
-  const name = full.trim();
-  return /^[가-힣]{3,4}$/.test(name) ? name.slice(1) : name;
-}
+export { givenName } from '../../shared/utils/names';

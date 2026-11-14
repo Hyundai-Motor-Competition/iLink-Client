@@ -1,4 +1,5 @@
 import type { PropsWithChildren, ReactNode } from 'react';
+import { shortName } from '../utils/names';
 import {
   Image,
   type ImageSourcePropType,
@@ -255,7 +256,7 @@ export function Avatar({
       ]}
     >
       <Text style={[styles.avatarText, { fontSize: size * 0.36 }]}>
-        {name ? name.slice(-2) : '?'}
+        {name ? shortName(name) : '?'}
       </Text>
     </View>
   );
