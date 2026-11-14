@@ -17,10 +17,13 @@ export function usePushRegistration() {
   useEffect(() => {
     if (!signedIn) return;
     const platform = Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
-    const register = (pushToken: string) =>
+    const register = (raw: string) => {
+      const pushToken = cleanPushToken(raw);
+      if (!pushToken) return;
       authApi.updatePushToken({ platform, pushToken }).catch(() => {
         // 실패해도 앱은 폴링으로 동작한다. 다음 실행 · 토큰 갱신 때 다시 등록
       });
+    };
 
     let cancelled = false;
     push.getToken().then(t => {
@@ -36,4 +39,16 @@ export function usePushRegistration() {
       offMessage();
     };
   }, [signedIn, userId, queryClient]);
+}
+
+/**
+ * 서버에는 FCM 토큰 값만 보낸다 (앞뒤 공백 · 따옴표 · 로그 문구가 섞이면 FCM이 NotRegistered로 거절한다).
+ * 토큰 모양(영문 · 숫자 · : _ - 만, 1~255자)이 아니면 보내지 않는다.
+ */
+export function cleanPushToken(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const t = raw.trim().replace(/^['"]+|['"]+$/g, '');
+  if (/^[A-Za-z0-9_:\-]{1,255}$/.test(t)) return t;
+  const m = t.match(/[A-Za-z0-9_-]+:APA91b[A-Za-z0-9_-]+/);
+  return m && m[0].length <= 255 ? m[0] : null;
 }

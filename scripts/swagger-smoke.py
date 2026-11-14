@@ -227,9 +227,13 @@ def main():
     api.call("SES-01", "GET", "/v1/pickup-sessions/active", token=vtok)
     refresh()
     track(api.call("SES-04", "PUT", f"/v1/pickup-sessions/{sid}/route", token=vtok, body={"spotId": spot1, "stateVersion": ver["v"]}, idem=True)[1])
-    api.call("SES-08", "GET", f"/v1/pickup-sessions/{sid}/stream", token=vtok, stream=True)
+    # SES-08: 서버는 첫 이벤트가 생길 때 응답 헤더를 보낸다. 기다리는 동안 다음 신호를 보내도록 따로 연다
+    import threading
+    sse = threading.Thread(target=api.call, args=("SES-08", "GET", f"/v1/pickup-sessions/{sid}/stream"), kwargs={"token": vtok, "stream": True})
+    sse.start()
     api.call("SIG-01", "POST", f"/v1/pickup-sessions/{sid}/vehicle-telemetry", token=vtok, body={
         "observedAt": now_iso(), "navEtaSeconds": 600, "remainingMeters": 3000, "location": {"lat": 37.49, "lng": 127.05}, "gear": "D"})
+    sse.join()
     refresh()
     track(api.call("CALL-01", "PUT", f"/v1/pickup-sessions/{sid}/call-hold", token=vtok, body={"stateVersion": ver["v"]}, idem=True)[1])
     track(api.call("CALL-01 DEL", "DELETE", f"/v1/pickup-sessions/{sid}/call-hold", token=vtok, query={"stateVersion": ver["v"]}, idem=True)[1])
