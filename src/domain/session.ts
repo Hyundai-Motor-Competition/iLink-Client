@@ -62,6 +62,11 @@ export function resolveChildScreen(
   if (view.incident?.type || me?.phase === 'NOT_BOARDED') return 'C04';
   if (s?.call === 'REVOKED' || s?.spot === 'INVALIDATED') return 'C04';
   if (me?.phase === 'CALLED' || me?.phase === 'MEETING') return 'C03';
+  // 푸시를 못 받는 기기(iOS 원격 푸시 전)는 서버가 '전달됨(CALLED)'으로 바꾸지 못한다.
+  // 차가 정차해 있고 살아 있는 합류 안내(접수 · 발송 · 전달 · 확인)가 있으면 바로 합류 안내 화면을 띄운다
+  const liveCall =
+    !!view.call?.callId && !!s?.call && s.call !== 'NONE' && s.call !== 'REVOKED';
+  if (liveCall && s?.vehicle === 'STOPPED') return 'C03';
   if (opts.prepNoticeReceived) return 'C02';
   return 'C01';
 }
