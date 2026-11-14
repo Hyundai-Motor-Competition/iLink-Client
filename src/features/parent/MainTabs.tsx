@@ -926,7 +926,8 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 18,
   },
-  mapCardImg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
+  // 카드에 padding이 있어 width/height '100%'는 안쪽 크기(약 87% × 77%)가 된다. 네 변 0으로만 채운다
+  mapCardImg: { ...StyleSheet.absoluteFill },
   mapCar: {
     position: 'absolute',
     width: 18,
