@@ -1,6 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 import { childrenOf, useFamily, useServerMode } from './data';
-import { useFamilyDraft } from './familyDraft';
+import { DEFAULT_CHILD_PHOTO, useFamilyDraft } from './familyDraft';
 import { mock } from './mock';
 
 const photos: Record<number, ImageSourcePropType> = {
@@ -37,7 +37,7 @@ export function photoFor(name: string): ImageSourcePropType | null {
     return draft.childPhoto;
   }
   const m = mock.children.find(c => c.name === name);
-  return m ? photos[m.id] : null;
+  return m ? photos[m.id] : DEFAULT_CHILD_PHOTO;
 }
 
 export function useChildren(): { list: ChildView[]; loading: boolean } {

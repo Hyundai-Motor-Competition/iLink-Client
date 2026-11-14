@@ -35,6 +35,7 @@ import {
 import { useChildren } from './children';
 import {
   type AcademyHit,
+  moveBy,
   registerSchedule,
   searchAcademies,
   useServerMode,
@@ -42,6 +43,7 @@ import {
 import { givenName, useFamilyDraft } from './familyDraft';
 import { mock } from './mock';
 import { usePickupStore } from './pickupStore';
+import { TileMap, type LatLng } from '../../shared/ui/TileMap';
 import { DAYS, reviewLabel, useScheduleDraft } from './scheduleDraft';
 
 type P<K extends keyof DemoStackParams> = NativeStackScreenProps<
@@ -53,7 +55,7 @@ type P<K extends keyof DemoStackParams> = NativeStackScreenProps<
  * 픽업 일정 등록 1~12 (assets/모바일 - 부모/픽업일정등록*.png, 390pt 폭 @3x).
  * 보호자 토큰이 있으면 서버(SET-01 학원 검색 → SET-02 일정 → SPOT-02 장소 → SET-07/08 설정 완료)에 저장하고,
  * 로그인 전 데모에서는 앱 메모리(pickupStore)에 저장한다.
- * 지도 SDK가 아직 없어 지도는 시안에서 잘라 낸 고정 이미지다. 대안 장소는 지도를 끌어 학원 기준 위치를 정한다.
+ * 지도는 학원 좌표를 중심으로 OpenStreetMap 타일을 깐다(TileMap). 대안 장소는 지도를 끌어 학원 기준 위치를 정한다.
  */
 const img = {
   map: require('../../assets/images/v2/map_academy.png'),
@@ -385,12 +387,59 @@ export function ScheduleAcademyScreen({ navigation }: P<'PScheduleAcademy'>) {
 
 /* ---------- 지도 카드 (5 · 8 · 10) ---------- */
 
-function MapCard({ alt }: { alt?: boolean }) {
+const PIN = 40;
+
+/** 학원 위치(검은 핀)와 대안 장소(회색 핀)를 실제 지도 위에 보여 준다. 좌표가 없으면 시안 이미지 */
+function MapCard({
+  center,
+  alts = [],
+}: {
+  center?: LatLng;
+  alts?: { east: number; north: number }[];
+}) {
+  const valid = center && (center.lat !== 0 || center.lng !== 0);
+  const altPoints = valid ? alts.map(a => moveBy(center, a.east, a.north)) : [];
   return (
     <View style={s.mapCard}>
       <View style={s.mapClip}>
-        <Image source={img.map} style={s.mapImg} resizeMode="cover" />
-        {alt ? <Image source={img.pinGreyMap} style={s.mapAltPin} /> : null}
+        {valid ? (
+          <TileMap
+            style={s.mapImg}
+            points={[center, ...altPoints]}
+            padding={{ top: 50, bottom: 30, side: 50 }}
+          >
+            {project => (
+              <>
+                {altPoints.map((p, i) => {
+                  const q = project(p);
+                  return (
+                    <Image
+                      key={i}
+                      source={img.pinGreyMap}
+                      style={[s.mapPin, { left: q.x - PIN / 2, top: q.y - PIN }]}
+                    />
+                  );
+                })}
+                {(() => {
+                  const q = project(center);
+                  return (
+                    <Image
+                      source={img.pinDark}
+                      style={[s.mapPin, { left: q.x - PIN / 2, top: q.y - PIN }]}
+                    />
+                  );
+                })()}
+              </>
+            )}
+          </TileMap>
+        ) : (
+          <>
+            <Image source={img.map} style={s.mapImg} resizeMode="cover" />
+            {alts.length ? (
+              <Image source={img.pinGreyMap} style={s.mapAltPin} />
+            ) : null}
+          </>
+        )}
       </View>
     </View>
   );
@@ -419,7 +468,7 @@ export function ScheduleConfirmScreen({ navigation }: P<'PScheduleConfirm'>) {
     >
       <FlowHeader label="픽업 위치 확인" title="이 학원이 맞나요?" />
       <View style={s.mapGap}>
-        <MapCard />
+        <MapCard center={hit?.location} />
         <View style={s.placeCard}>
           <Image source={img.pinIcon} style={s.placePinIcon} />
           <View style={s.flex}>
@@ -532,6 +581,22 @@ function from24(t: string) {
   };
 }
 
+/** 지금부터 n분 뒤를 10분 단위로 올려 'HH:mm'과 그날의 요일(월=0)로 */
+function fromNow(min: number) {
+  const d = new Date(Date.now() + min * 60_000);
+  const m = Math.ceil(d.getMinutes() / 10) * 10;
+  d.setMinutes(m, 0, 0);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return { time: `${hh}:${mm}`, day: (d.getDay() + 6) % 7 };
+}
+
+const QUICK = [
+  { label: '30분 뒤', min: 30 },
+  { label: '1시간 뒤', min: 60 },
+  { label: '2시간 뒤', min: 120 },
+];
+
 export function ScheduleTimeScreen({ navigation }: P<'PScheduleTime'>) {
   const { days, weekly, time, timeSet, toggleDay, setWeekly, setTime } =
     useScheduleDraft();
@@ -541,6 +606,15 @@ export function ScheduleTimeScreen({ navigation }: P<'PScheduleTime'>) {
   const [hour, setHour] = useState(init.hour);
   const [minute, setMinute] = useState(init.minute);
   const ready = days.some(Boolean) && timeSet;
+  const quick = (min: number) => {
+    const q = fromNow(min);
+    setTime(q.time);
+    if (!days[q.day]) toggleDay(q.day);
+    const t = from24(q.time);
+    setAmpm(t.ampm);
+    setHour(t.hour);
+    setMinute(t.minute);
+  };
 
   return (
     <OnboardScreen
@@ -601,6 +675,18 @@ export function ScheduleTimeScreen({ navigation }: P<'PScheduleTime'>) {
           {timeSet ? time : '00:00'}
         </Text>
       </Pressable>
+      <View style={s.quickRow}>
+        {QUICK.map(q => (
+          <Pressable
+            key={q.min}
+            accessibilityRole="button"
+            onPress={() => quick(q.min)}
+            style={({ pressed }) => [s.quickChip, pressed && s.pressed]}
+          >
+            <Text style={s.quickText}>{q.label}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       <Sheet visible={open} onClose={() => setOpen(false)} top={454}>
         <Text style={s.sheetHeading}>시간 선택</Text>
@@ -634,12 +720,18 @@ export function ScheduleTimeScreen({ navigation }: P<'PScheduleTime'>) {
 const M_PER_PT = 1.5;
 const DRAG_LIMIT = 70;
 
+/** 줌 17 타일 지도에서 화면 1pt가 몇 m인지 (위도에 따라 다르다) */
+const metersPerPt = (lat: number) =>
+  (156543.03 * Math.cos((lat * Math.PI) / 180)) / 2 ** 17;
+
 function AltSpotSheet({
   visible,
+  center,
   onClose,
   onSave,
 }: {
   visible: boolean;
+  center?: LatLng;
   onClose(): void;
   onSave(name: string, east: number, north: number): void;
 }) {
@@ -678,11 +770,23 @@ function AltSpotSheet({
       <Text style={s.altTitle}>대안 장소 추가</Text>
       <Text style={s.altSub}>지도를 움직여 장소를 골라주세요</Text>
       <View style={s.altMap} {...responder.panHandlers}>
-        <Animated.Image
-          source={img.map}
-          resizeMode="cover"
-          style={[s.altMapImg, { transform: pan.getTranslateTransform() }]}
-        />
+        {center && (center.lat !== 0 || center.lng !== 0) ? (
+          <Animated.View
+            style={[s.altMapImg, { transform: pan.getTranslateTransform() }]}
+          >
+            <TileMap
+              style={s.altTiles}
+              points={[center]}
+              padding={{ top: 0, bottom: 0, side: 0 }}
+            />
+          </Animated.View>
+        ) : (
+          <Animated.Image
+            source={img.map}
+            resizeMode="cover"
+            style={[s.altMapImg, { transform: pan.getTranslateTransform() }]}
+          />
+        )}
         <Image source={img.pinGreyMap} style={s.altPin} />
       </View>
       <TextInput
@@ -699,8 +803,9 @@ function AltSpotSheet({
         style={s.sheetButton}
         onPress={() => {
           // 지도를 오른쪽으로 끌면 고른 곳은 학원의 왼쪽(서쪽), 아래로 끌면 북쪽
-          const east = -last.current.x * M_PER_PT;
-          const north = last.current.y * M_PER_PT;
+          const m = center ? metersPerPt(center.lat) : M_PER_PT;
+          const east = -last.current.x * m;
+          const north = last.current.y * m;
           onSave(name.trim(), Math.round(east), Math.round(north));
         }}
       />
@@ -742,7 +847,7 @@ export function ScheduleSpotScreen({ navigation }: P<'PScheduleSpot'>) {
         contentContainerStyle={s.spotScroll}
         showsVerticalScrollIndicator={false}
       >
-        <MapCard alt={alts.length > 0} />
+        <MapCard center={hit?.location} alts={alts} />
         <View style={[s.spotCard, alts.length > 0 && s.spotCardMid]}>
           <Image source={img.pinDark} style={s.spotPin} />
           <View style={s.flex}>
@@ -785,6 +890,7 @@ export function ScheduleSpotScreen({ navigation }: P<'PScheduleSpot'>) {
       </ScrollView>
       <AltSpotSheet
         visible={open}
+        center={hit?.location}
         onClose={() => setOpen(false)}
         onSave={(name, east, north) => {
           addAlt({ name, east, north });
@@ -1091,6 +1197,7 @@ const s = StyleSheet.create({
   },
   mapClip: { flex: 1, borderRadius: 20, overflow: 'hidden' },
   mapImg: { width: '100%', height: '100%' },
+  mapPin: { position: 'absolute', width: PIN, height: PIN, borderRadius: PIN / 2 },
   mapAltPin: {
     position: 'absolute',
     left: '55.5%',
@@ -1207,6 +1314,16 @@ const s = StyleSheet.create({
     color: '#6F6F5F',
   },
   timeTextOn: { color: v2.ink },
+  quickRow: { marginTop: 12, flexDirection: 'row', gap: 8 },
+  quickChip: {
+    flex: 1,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: v2.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickText: { fontFamily: pf.medium, fontSize: 14, color: v2.ink },
   wheels: {
     marginTop: 17,
     height: ROW * 5,
@@ -1307,6 +1424,7 @@ const s = StyleSheet.create({
     width: 358 + DRAG_LIMIT * 2,
     height: 202 + DRAG_LIMIT * 2,
   },
+  altTiles: { width: '100%', height: '100%' },
   altPin: { width: 40, height: 40, borderRadius: 20 },
   altInput: {
     marginTop: 20,

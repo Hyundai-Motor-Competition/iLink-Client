@@ -26,11 +26,15 @@ type FamilyDraft = {
   patch(p: Partial<FamilyDraft>): void;
 };
 
+/** 사진을 고르지 않았을 때 쓰는 기본 프로필 이미지 */
+export const DEFAULT_GUARDIAN_PHOTO: ImageSourcePropType = require('../../assets/images/child2/avatar_guardian.png');
+export const DEFAULT_CHILD_PHOTO: ImageSourcePropType = require('../../assets/images/child2/avatar_child.png');
+
 export const useFamilyDraft = create<FamilyDraft>(set => ({
   guardianAlias: '',
-  guardianPhoto: null,
+  guardianPhoto: DEFAULT_GUARDIAN_PHOTO,
   childName: '',
-  childPhoto: null,
+  childPhoto: DEFAULT_CHILD_PHOTO,
   invited: false,
   setGuardianAlias: guardianAlias => set({ guardianAlias }),
   setGuardianPhoto: guardianPhoto => set({ guardianPhoto }),
