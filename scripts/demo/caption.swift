@@ -17,6 +17,9 @@ let ctx = NSGraphicsContext.current!.cgContext
 ctx.translateBy(x: 0, y: CGFloat(H)); ctx.scaleBy(x: 1, y: -1)
 NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: true)
 
+// 시연 영상 바탕색 (밝은 편의 회색). phone 테두리 바깥도 같은 색으로 칠해 화면 모서리가 삐져나오지 않게 한다
+let bgColor = NSColor(calibratedRed: 0.79, green: 0.80, blue: 0.82, alpha: 1)
+
 func font(_ size: CGFloat, _ bold: Bool) -> NSFont {
   NSFont(name: bold ? "AppleSDGothicNeo-Bold" : "AppleSDGothicNeo-Medium", size: size) ?? .systemFont(ofSize: size)
 }
@@ -28,12 +31,12 @@ func draw(_ s: String, center x: CGFloat, top y: CGFloat, size: CGFloat, bold: B
 }
 
 if mode == "base" {
-  NSColor(calibratedRed: 0.07, green: 0.08, blue: 0.10, alpha: 1).setFill()
+  bgColor.setFill()
   NSRect(x: 0, y: 0, width: W, height: H).fill()
   for spec in a.dropFirst(5) {
     let p = spec.split(separator: ",", maxSplits: 2).map(String.init)
-    draw(p[2], center: CGFloat(Double(p[0])!), top: CGFloat(Double(p[1])!), size: 26, bold: false,
-         color: NSColor(white: 0.75, alpha: 1))
+    draw(p[2], center: CGFloat(Double(p[0])!), top: CGFloat(Double(p[1])!), size: 26, bold: true,
+         color: NSColor(white: 0.22, alpha: 1))
   }
 } else if mode == "phone" {
   // 폰 테두리: 몸통(둥근 사각형) · 화면 자리는 투명 · 옆 버튼 · (Android) 펀치홀 카메라
@@ -41,6 +44,9 @@ if mode == "base" {
   let sw = CGFloat(Double(a[6])!), sh = CGFloat(Double(a[7])!), b = CGFloat(Double(a[8])!)
   let side: CGFloat = 4
   let body = NSRect(x: side, y: 0, width: sw + 2 * b, height: sh + 2 * b)
+  // 테두리 바깥(몸통 둥근 모서리 밖)은 바탕색으로 덮는다: 아래 깔린 화면 영상의 각진 모서리가 보이지 않게
+  bgColor.setFill()
+  NSRect(x: 0, y: 0, width: W, height: H).fill()
   let screenR = kind == "ios" ? sw * 0.135 : sw * 0.085
   let bodyR = screenR + b
   // 옆 버튼
@@ -73,16 +79,18 @@ if mode == "base" {
     NSBezierPath(ovalIn: NSRect(x: screen.midX - d / 2, y: screen.minY + sw * 0.035, width: d, height: d)).fill()
   }
 } else {
-  // 자막: 반투명 띠 위에 흰 글씨
+  // 자막: 주황 띠 위에 흰 글씨 (화면 아래에 둔다)
   NSColor(calibratedRed: 0, green: 0, blue: 0, alpha: 0).setFill()
   NSRect(x: 0, y: 0, width: W, height: H).fill()
   let text = a[5]
-  let attr: [NSAttributedString.Key: Any] = [.font: font(40, true)]
+  let size: CGFloat = 32
+  let attr: [NSAttributedString.Key: Any] = [.font: font(size, true)]
   let tw = NSAttributedString(string: text, attributes: attr).size().width
-  let box = NSRect(x: (CGFloat(W) - tw) / 2 - 36, y: 18, width: tw + 72, height: CGFloat(H) - 36)
-  NSColor(calibratedRed: 1, green: 0.235, blue: 0.08, alpha: 0.92).setFill()   // iLink 주황 #FF3C14
-  NSBezierPath(roundedRect: box, xRadius: (CGFloat(H) - 36) / 2, yRadius: (CGFloat(H) - 36) / 2).fill()
-  draw(text, center: CGFloat(W) / 2, top: box.midY - 27, size: 40, bold: true, color: .white)
+  let bh = CGFloat(H) - 16
+  let box = NSRect(x: (CGFloat(W) - tw) / 2 - 30, y: 8, width: tw + 60, height: bh)
+  NSColor(calibratedRed: 1, green: 0.235, blue: 0.08, alpha: 0.95).setFill()   // iLink 주황 #FF3C14
+  NSBezierPath(roundedRect: box, xRadius: bh / 2, yRadius: bh / 2).fill()
+  draw(text, center: CGFloat(W) / 2, top: box.midY - size * 0.68, size: size, bold: true, color: .white)
 }
 NSGraphicsContext.restoreGraphicsState()
 try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out))
