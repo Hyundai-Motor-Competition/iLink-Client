@@ -17,7 +17,8 @@ echo "목적지 $LAT, $LNG"
 geo() { sim --es lat "$1" --es lng "$2"; pleos emu geo fix "$2" "$1" > /dev/null 2>&1 || true; }
 
 # 자녀는 학원 건물 앞(목적지에서 북동쪽으로 약 150m)에서 걸어온다
-phone emu geo fix "$(py "print($LNG+0.0009)")" "$(py "print($LAT+0.0011)")" > /dev/null
+# 자녀 폰이 이 컴퓨터에 있을 때만 (Mac · Windows로 나눠 찍으면 자녀 위치는 자녀 폰 쪽에서 맞춘다)
+if has_dev "$PHONE"; then phone emu geo fix "$(py "print($LNG+0.0009)")" "$(py "print($LAT+0.0011)")" > /dev/null || true; fi
 
 # 출발점: 목적지에서 남서쪽 약 1.2km
 read -r SLAT SLNG <<<"$(py "print($LAT-0.0080, $LNG-0.0085)")"
