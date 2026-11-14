@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Image,
   type ImageSourcePropType,
+  Platform,
   StyleSheet,
   View,
 } from 'react-native';
@@ -20,7 +21,38 @@ import {
  * 카메라가 없거나(시뮬레이터) 권한이 없으면 fallback 사진을 깐다.
  * 읽은 QR 값은 한 번만 onCode로 넘긴다 (다시 받으려면 화면을 다시 연다).
  */
-export function QrCamera({
+export function QrCamera(props: {
+  fallback: ImageSourcePropType;
+  onCode(value: string): void;
+}) {
+  // VisionCamera 5의 QR 인식(CameraObjectOutput)은 iOS에만 있다. Android는 미리보기만 띄우고
+  // QR은 차량 링크(pickup://link?code=)나 촬영 버튼으로 받는다
+  return Platform.OS === 'ios' ? <IosQrCamera {...props} /> : <PreviewOnly fallback={props.fallback} />;
+}
+
+function useCameraReady() {
+  const device = useCameraDevice('back');
+  const { hasPermission, canRequestPermission, requestPermission } = useCameraPermission();
+  useEffect(() => {
+    if (device && !hasPermission && canRequestPermission) requestPermission().catch(() => false);
+  }, [device, hasPermission, canRequestPermission, requestPermission]);
+  return { device, ready: !!device && hasPermission };
+}
+
+function PreviewOnly({ fallback }: { fallback: ImageSourcePropType }) {
+  const focused = useIsFocused();
+  const { device, ready } = useCameraReady();
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Image source={fallback} style={s.fill} resizeMode="cover" />
+      {ready && device ? (
+        <Camera style={StyleSheet.absoluteFill} device={device} isActive={focused} resizeMode="cover" />
+      ) : null}
+    </View>
+  );
+}
+
+function IosQrCamera({
   fallback,
   onCode,
 }: {
@@ -28,15 +60,10 @@ export function QrCamera({
   onCode(value: string): void;
 }) {
   const focused = useIsFocused();
-  const device = useCameraDevice('back');
-  const { hasPermission, canRequestPermission, requestPermission } = useCameraPermission();
+  const { device, ready } = useCameraReady();
   const done = useRef(false);
   const onCodeRef = useRef(onCode);
   onCodeRef.current = onCode;
-
-  useEffect(() => {
-    if (device && !hasPermission && canRequestPermission) requestPermission().catch(() => false);
-  }, [device, hasPermission, canRequestPermission, requestPermission]);
 
   useEffect(() => {
     if (focused) done.current = false;
@@ -55,7 +82,7 @@ export function QrCamera({
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Image source={fallback} style={s.fill} resizeMode="cover" />
-      {device && hasPermission ? (
+      {ready && device ? (
         <Camera
           style={StyleSheet.absoluteFill}
           device={device}

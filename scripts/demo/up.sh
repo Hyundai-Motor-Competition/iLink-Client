@@ -103,6 +103,9 @@ if [ "$ANDROID" = yes ]; then
   for p in ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION; do pleos shell pm grant --user current "$VEHICLE_PKG" android.permission.$p || true; done
   phone shell pm clear "$MOBILE_PKG" > /dev/null || true
   for p in POST_NOTIFICATIONS ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION; do phone shell pm grant "$MOBILE_PKG" android.permission.$p || true; done
+  # 에뮬레이터 카메라는 가상 방을 비추므로, 시연에서는 카메라를 끄고(다시 묻지 않게) QR 화면에 차량 실내 사진이 나오게 한다
+  phone shell pm revoke "$MOBILE_PKG" android.permission.CAMERA > /dev/null 2>&1 || true
+  phone shell pm set-permission-flags "$MOBILE_PKG" android.permission.CAMERA user-fixed > /dev/null 2>&1 || true
   # 상태 표시줄 시각을 9:41로 고정 (시연 화면 정리)
   phone shell settings put global sysui_demo_allowed 1 > /dev/null 2>&1 || true
   phone shell am broadcast -a com.android.systemui.demo -e command enter > /dev/null 2>&1 || true
