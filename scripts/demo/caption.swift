@@ -1,6 +1,7 @@
 // compose.sh 가 쓰는 그림 만들기: 배경(기기 이름표) · 단계 자막 PNG. macOS 기본 글꼴(Apple SD 산돌고딕 Neo)을 쓴다.
 //   swift caption.swift base OUT.png W H "x,y,이름" ...
 //   swift caption.swift text OUT.png W H "자막"
+//   swift caption.swift phone OUT.png W H ios|android 화면폭 화면높이 베젤   (화면 자리는 투명한 폰 테두리)
 import AppKit
 
 let a = CommandLine.arguments
@@ -33,6 +34,43 @@ if mode == "base" {
     let p = spec.split(separator: ",", maxSplits: 2).map(String.init)
     draw(p[2], center: CGFloat(Double(p[0])!), top: CGFloat(Double(p[1])!), size: 26, bold: false,
          color: NSColor(white: 0.75, alpha: 1))
+  }
+} else if mode == "phone" {
+  // 폰 테두리: 몸통(둥근 사각형) · 화면 자리는 투명 · 옆 버튼 · (Android) 펀치홀 카메라
+  let kind = a[5]
+  let sw = CGFloat(Double(a[6])!), sh = CGFloat(Double(a[7])!), b = CGFloat(Double(a[8])!)
+  let side: CGFloat = 4
+  let body = NSRect(x: side, y: 0, width: sw + 2 * b, height: sh + 2 * b)
+  let screenR = kind == "ios" ? sw * 0.135 : sw * 0.085
+  let bodyR = screenR + b
+  // 옆 버튼
+  NSColor(white: 0.16, alpha: 1).setFill()
+  func btn(_ x: CGFloat, _ y: CGFloat, _ h: CGFloat) {
+    NSBezierPath(roundedRect: NSRect(x: x, y: y, width: side + 2, height: h), xRadius: 1.5, yRadius: 1.5).fill()
+  }
+  if kind == "ios" {
+    btn(0, body.height * 0.17, body.height * 0.035)        // 동작 버튼
+    btn(0, body.height * 0.24, body.height * 0.065)        // 볼륨 +
+    btn(0, body.height * 0.32, body.height * 0.065)        // 볼륨 -
+    btn(body.maxX - 2, body.height * 0.27, body.height * 0.10)   // 측면 버튼
+  } else {
+    btn(body.maxX - 2, body.height * 0.20, body.height * 0.06)   // 전원
+    btn(body.maxX - 2, body.height * 0.29, body.height * 0.12)   // 볼륨
+  }
+  // 몸통 테두리(밝은 금속 테) + 검은 베젤
+  NSColor(white: kind == "ios" ? 0.42 : 0.30, alpha: 1).setFill()
+  NSBezierPath(roundedRect: body, xRadius: bodyR, yRadius: bodyR).fill()
+  NSColor(white: 0.04, alpha: 1).setFill()
+  NSBezierPath(roundedRect: body.insetBy(dx: 2, dy: 2), xRadius: bodyR - 2, yRadius: bodyR - 2).fill()
+  // 화면 자리 비우기
+  let screen = NSRect(x: side + b, y: b, width: sw, height: sh)
+  NSGraphicsContext.current!.compositingOperation = .clear
+  NSBezierPath(roundedRect: screen, xRadius: screenR, yRadius: screenR).fill()
+  NSGraphicsContext.current!.compositingOperation = .sourceOver
+  if kind == "android" {
+    NSColor.black.setFill()
+    let d = sw * 0.032
+    NSBezierPath(ovalIn: NSRect(x: screen.midX - d / 2, y: screen.minY + sw * 0.035, width: d, height: d)).fill()
   }
 } else {
   // 자막: 반투명 띠 위에 흰 글씨

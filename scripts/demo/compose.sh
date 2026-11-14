@@ -23,17 +23,21 @@ print(min(s), max(e))")"
 TOTAL=$(py "print(round($T1-$T0,2))")
 echo "길이 ${TOTAL}초"
 
-# 크기: 폰 두 대는 높이 PH, 차량은 남은 폭
+# 크기: 폰 두 대는 화면 높이 PH + 테두리(베젤 B, 옆 버튼 4px), 차량은 남은 폭
+B=12; SIDE=4; PH=$((PH - 2 * B))
 CHILD_W=$(py "print(int($PH*1080/2400)//2*2)")
 PARENT_W=$(py "print(int($PH*1206/2622)//2*2)")
-PARENT_X=$((W - GAP - PARENT_W)); CHILD_X=$((PARENT_X - GAP - CHILD_W))
+CHILD_OW=$((CHILD_W + 2 * B + 2 * SIDE)); PARENT_OW=$((PARENT_W + 2 * B + 2 * SIDE))
+PARENT_X=$((W - GAP - PARENT_OW)); CHILD_X=$((PARENT_X - GAP - CHILD_OW))
 CAR_W=$(( (CHILD_X - 2*GAP) / 2 * 2 )); CAR_H=$(( CAR_W * 9 / 16 / 2 * 2 )); CAR_X=$GAP
-CAR_Y=$(( TOP + (PH - CAR_H) / 2 ))
-LABEL_Y=$((TOP + PH + 16))
+CAR_Y=$(( TOP + (PH + 2 * B - CAR_H) / 2 ))
+LABEL_Y=$((TOP + PH + 2 * B + 16))
 swift "$CAP" base "$TMP/base.png" $W $H \
   "$((CAR_X + CAR_W / 2)),$((CAR_Y + CAR_H + 16)),차량 디스플레이 · Pleos Connect" \
-  "$((CHILD_X + CHILD_W / 2)),$LABEL_Y,자녀 · Android" \
-  "$((PARENT_X + PARENT_W / 2)),$LABEL_Y,부모 · iOS"
+  "$((CHILD_X + CHILD_OW / 2)),$LABEL_Y,자녀 · Android" \
+  "$((PARENT_X + PARENT_OW / 2)),$LABEL_Y,부모 · iOS"
+swift "$CAP" phone "$TMP/frame_child.png" $CHILD_OW $((PH + 2 * B)) android $CHILD_W $PH $B
+swift "$CAP" phone "$TMP/frame_parent.png" $PARENT_OW $((PH + 2 * B)) ios $PARENT_W $PH $B
 
 # 자막 (모든 marks*.txt 를 시각순으로)
 cat "$REC"/marks*.txt 2>/dev/null | sort -n > "$TMP/marks.txt" || true
@@ -61,9 +65,14 @@ place() { # 이름 폭 높이 x y   (이름-*.webm 조각들 또는 parent.mov)
   FILTER+="[$LAST][t$n]overlay=$x:$y:eof_action=repeat[o$n];"
   LAST="o$n"
 }
+frame() { # 폰 테두리를 화면 위에 덮는다 (화면 자리는 투명, 모서리는 테두리가 가린다)
+  INPUTS+=(-i "$1"); FILTER+="[$LAST][$idx:v]overlay=$2:$3[f$idx];"; LAST="f$idx"; idx=$((idx + 1))
+}
 place car $CAR_W $CAR_H $CAR_X $CAR_Y
-place child $CHILD_W $PH $CHILD_X $TOP
-place parent $PARENT_W $PH $PARENT_X $TOP
+place child $CHILD_W $PH $((CHILD_X + SIDE + B)) $((TOP + B))
+frame "$TMP/frame_child.png" $CHILD_X $TOP
+place parent $PARENT_W $PH $((PARENT_X + SIDE + B)) $((TOP + B))
+frame "$TMP/frame_parent.png" $PARENT_X $TOP
 
 i=0
 MARKS=()
