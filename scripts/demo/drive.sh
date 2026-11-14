@@ -17,17 +17,17 @@ echo "목적지 $LAT, $LNG"
 geo() { sim --es lat "$1" --es lng "$2"; pleos emu geo fix "$2" "$1" > /dev/null 2>&1 || true; }
 
 # 자녀는 학원 건물 앞(목적지에서 북동쪽으로 약 150m)에서 걸어온다
-phone emu geo fix "$(python3 -c "print($LNG+0.0009)")" "$(python3 -c "print($LAT+0.0011)")" > /dev/null
+phone emu geo fix "$(py "print($LNG+0.0009)")" "$(py "print($LAT+0.0011)")" > /dev/null
 
 # 출발점: 목적지에서 남서쪽 약 1.2km
-read -r SLAT SLNG <<<"$(python3 -c "print($LAT-0.0080, $LNG-0.0085)")"
+read -r SLAT SLNG <<<"$(py "print($LAT-0.0080, $LNG-0.0085)")"
 geo "$SLAT" "$SLNG"
 sim --es gear D --ez driving true   # 출발: 기어 D, 주행 중 화면
 # Pleos 내비가 길안내를 시작하면 내비 화면이 앞으로 나온다. 시연에서는 iLink 화면을 다시 앞으로
 sleep 2; pleos shell am start --user current -n "$VEHICLE_PKG/com.ilink.vehicle.MainActivity" > /dev/null
 STEPS=$(( SECONDS_TOTAL / 2 ))
 for i in $(seq 1 "$STEPS"); do
-  read -r CLAT CLNG <<<"$(python3 -c "t=$i/$STEPS; print($SLAT+($LAT-$SLAT)*t, $SLNG+($LNG-$SLNG)*t)")"
+  read -r CLAT CLNG <<<"$(py "t=$i/$STEPS; print($SLAT+($LAT-$SLAT)*t, $SLNG+($LNG-$SLNG)*t)")"
   geo "$CLAT" "$CLNG"
   sleep 2
 done

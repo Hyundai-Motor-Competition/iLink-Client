@@ -76,3 +76,7 @@ yarn-error.log
 
 # 디자인 시안 스크린샷 (공유 안 함)
 /design/
+
+# 시연 녹화 · 시연용 앱 파일
+/demo-rec/
+/demo-apk/
