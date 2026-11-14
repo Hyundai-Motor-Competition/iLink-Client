@@ -27,6 +27,8 @@ export type LiveVM = {
   progress: number;
   /** 서버가 받은 차 위치 (지도 카드). 아직 없으면 undefined */
   vehicle?: { lat: number; lng: number };
+  /** 만날 장소 위치. 차 위치가 아직 없을 때 지도 카드 가운데 */
+  spot?: { lat: number; lng: number };
   steps: StepVM[];
   held: boolean;
   callId?: number;
@@ -47,7 +49,7 @@ const firstRemain = new Map<number, number>();
 export function fromSession(
   v: SessionView,
   events: SessionEvent[],
-  extra: { academy?: string; pickupTime?: string },
+  extra: { academy?: string; pickupTime?: string; spotLocation?: { lat: number; lng: number } },
 ): LiveVM {
   const child = v.children?.[0];
   const name = child?.name ?? '자녀';
@@ -171,6 +173,7 @@ export function fromSession(
       v.vehicleLocation?.lat != null && v.vehicleLocation?.lng != null
         ? { lat: v.vehicleLocation.lat, lng: v.vehicleLocation.lng }
         : undefined,
+    spot: extra.spotLocation,
     steps,
     held: !!v.call?.held,
     callId: v.call?.callId,

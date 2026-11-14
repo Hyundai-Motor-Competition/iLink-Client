@@ -349,12 +349,22 @@ export function useSessionActions(view?: SessionView) {
     /** 대체 장소 (SES-05) */
     async changeSpot(spotId: number) {
       if (!id) return;
+      // 합류 안내가 이미 나갔으면 서버가 장소 변경을 받지 않으므로(CALL_ALREADY_SENT · CHILD_ALREADY_MOVING) 먼저 철회한다
+      let latest = await sessionApi.get(id);
+      const st = latest.status?.call;
+      if (latest.call?.callId && st && st !== 'NONE' && st !== 'REVOKED') {
+        latest = await callApi.revoke(
+          latest.call.callId,
+          { stateVersion: latest.stateVersion ?? ver, reason: 'CHANGE_SPOT' },
+          newIdempotencyKey(),
+        );
+      }
       await sessionApi.changeSpot(
         id,
         {
           spotId,
-          stateVersion: ver,
-          spotVersion: view?.spot?.spotVersion ?? 0,
+          stateVersion: latest.stateVersion ?? ver,
+          spotVersion: latest.spot?.spotVersion ?? 0,
         },
         newIdempotencyKey(),
       );

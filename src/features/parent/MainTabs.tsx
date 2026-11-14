@@ -507,15 +507,16 @@ function LiveMapCard({ live, onPress }: { live: LiveVM; onPress(): void }) {
       style={({ pressed }) => [pressed && s.pressed]}
     >
       <View style={s.mapCard}>
-        {live.vehicle ? (
-          // 자녀 · 차량 앱과 같은 OSM 지도에 차 위치
+        {live.vehicle || live.spot ? (
+          // 자녀 · 차량 앱과 같은 OSM 지도에 차 위치 (차 위치가 아직 없으면 만날 장소)
           <TileMap
             style={s.mapCardImg}
-            points={[live.vehicle]}
+            points={[(live.vehicle ?? live.spot)!]}
             padding={{ top: 20, bottom: 70, side: 40 }}
           >
             {project => {
-              const q = project(live.vehicle!);
+              if (!live.vehicle) return null;
+              const q = project(live.vehicle);
               return <View style={[s.mapCar, { left: q.x - 9, top: q.y - 9 }]} />;
             }}
           </TileMap>

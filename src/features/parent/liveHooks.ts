@@ -160,6 +160,8 @@ export function useServerLive(): {
   const academy = spots.data?.academies?.find(a =>
     a.spots?.some(sp => sp.spotId === view.spot?.spotId),
   );
+  const spotHere = academy?.spots?.find(sp => sp.spotId === view.spot?.spotId);
+  const spotLoc = spotHere?.stopPoint ?? spotHere?.meetingPoint;
   const childId = view.children?.[0]?.childUserId;
   const sched = schedules.data
     ?.find(x => x.childId === childId)
@@ -170,6 +172,10 @@ export function useServerLive(): {
     live: fromSession(view, events, {
       academy: academy?.academyName,
       pickupTime: sched?.classEndTime?.slice(0, 5),
+      spotLocation:
+        spotLoc?.lat != null && spotLoc?.lng != null
+          ? { lat: spotLoc.lat, lng: spotLoc.lng }
+          : undefined,
     }),
   };
 }
