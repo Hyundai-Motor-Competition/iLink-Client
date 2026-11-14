@@ -20,7 +20,12 @@ export const useAuthStore = create<AuthState>(set => ({
   status: 'loading',
   auth: null,
   async restore() {
-    const auth = await loadAuth();
+    // 키체인을 읽지 못하면(서명 없는 시뮬레이터 빌드 등) 로딩에 머물지 않고 로그아웃 상태로 시작한다
+    // (응답이 없을 때도 3초 뒤에는 넘어간다)
+    const auth = await Promise.race([
+      loadAuth().catch(() => null),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)),
+    ]);
     set({ auth, status: auth ? 'signedIn' : 'signedOut' });
   },
   async signIn(auth) {

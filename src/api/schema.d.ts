@@ -34,7 +34,7 @@ export interface paths {
         get?: never;
         /**
          * 경로 확정 (SES-04)
-         * @description 차량 토큰. 내비 SDK가 길안내를 시작한 뒤 spotId · navRouteId · stateVersion으로 경로를 확정한다. 이때부터 자녀 화면에 장소가 보인다
+         * @description 차량 토큰. 내비 SDK가 길안내를 시작한 뒤 경로를 확정한다. spotId 또는 candidate {name(1~50자), location{lat, lng}} 중 하나, navRouteId, totalMeters(선택, 0 이상), stateVersion을 보낸다. candidate면 그 위치로 임시 장소를 만들어 세션 장소를 바꾼 뒤 확정한다. 이때부터 자녀 화면에 장소가 보인다
          */
         put: operations["confirmRoute"];
         post?: never;
@@ -182,7 +182,7 @@ export interface paths {
         get?: never;
         /**
          * 합류 안내 방식 변경 (SET-06)
-         * @description GUARDIAN · CO_GUARDIAN만. joinCallMode는 AUTO · GUARDIAN_CONFIRM. 바꾸면 settingsVersion이 1 오르고 다음 세션부터 적용된다
+         * @description GUARDIAN · CO_GUARDIAN만. joinCallMode는 AUTO · GUARDIAN_CONFIRM. 바꾸면 settingsVersion이 1 오르고 진행 중인 세션에도 바로 적용된다
          */
         put: operations["changeCallMode"];
         post?: never;
@@ -343,7 +343,7 @@ export interface paths {
         put?: never;
         /**
          * 장소 변경 (SES-05)
-         * @description 차량 앱, GUARDIAN · CO_GUARDIAN. spotId · stateVersion · spotVersion으로 저장된 다른 장소로 바꾼다. 차량은 다시 길안내한 뒤 경로 확정(SES-04)을 부른다
+         * @description 차량 앱, GUARDIAN · CO_GUARDIAN. spotId · candidate {name, location} · here(true) 중 하나와 stateVersion · spotVersion을 보낸다. spotId는 저장된 다른 장소로, candidate는 그 위치의 임시 장소로 바꾸고, 차량은 다시 길안내한 뒤 경로 확정(SES-04)을 부른다. here(true)는 받은 마지막 차량 위치로 임시 장소를 만들어 바로 확정하고 합류 호출(MANUAL)을 보낸다
          */
         post: operations["changeSpot"];
         delete?: never;
@@ -607,7 +607,7 @@ export interface paths {
         put?: never;
         /**
          * 멤버 등록 (FAM-02)
-         * @description GUARDIAN · CO_GUARDIAN만. role은 CHILD · CO_GUARDIAN · DELEGATE · TEACHER. name은 1~20자(이모지 · 제어문자 불가). phone은 국제 형식이고 CHILD만 생략 가능
+         * @description GUARDIAN · CO_GUARDIAN만. role은 CHILD · CO_GUARDIAN · DELEGATE · TEACHER. name은 1~20자(이모지 · 제어문자 불가). phone은 국제 형식이고 CHILD만 생략 가능. grade는 선택이고 1~20자
          */
         post: operations["registerMemberWithProfileImage"];
         delete?: never;
@@ -783,7 +783,7 @@ export interface paths {
         head?: never;
         /**
          * 멤버 수정 (FAM-03)
-         * @description GUARDIAN · CO_GUARDIAN만. name · phone · role 모두 선택이고 보낸 필드만 바뀐다. role 변경은 GUARDIAN만, GUARDIAN 자신의 role은 바꿀 수 없다
+         * @description GUARDIAN · CO_GUARDIAN만. name · phone · role · grade 모두 선택이고 보낸 필드만 바뀐다(null도 그대로 둔다). grade는 1~20자. role 변경은 GUARDIAN만, GUARDIAN 자신의 role은 바꿀 수 없다
          */
         patch: operations["updateMember"];
         trace?: never;
@@ -900,6 +900,26 @@ export interface paths {
          * @description GUARDIAN · CO_GUARDIAN · DELEGATE 또는 차량 토큰. 학원 근처 공영주차장 · 길가 정차 후보를 순위대로 돌려준다. 지원 지역 밖이면 supported = false와 빈 items[]
          */
         get: operations["recommendSpots"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pickup-spot-recommendations/nearby": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 학원 기준 근처 장소 추천 (SPOT-05)
+         * @description GUARDIAN · CO_GUARDIAN · DELEGATE 또는 차량 토큰. 출발 위치 없이 학원 근처 공영주차장 · 길가 정차 후보를 걷는 거리 짧은 순으로 최대 8개 돌려준다. 카카오 길찾기를 부르지 않는다. 지원 지역 밖이면 supported = false와 빈 items[]
+         */
+        get: operations["recommendNearbySpots"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1088,6 +1108,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/families/me/today-pickups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 오늘의 픽업 (SET-13)
+         * @description GUARDIAN · CO_GUARDIAN 전용. 한국 날짜 오늘 가족 자녀들의 픽업을 targetAt 오름차순(같으면 scheduleId)으로 돌려준다. DRAFT 일정도 넣는다
+         */
+        get: operations["getTodayPickups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/children/{childId}/setup-summary": {
         parameters: {
             query?: never;
@@ -1120,6 +1160,26 @@ export interface paths {
          * @description GUARDIAN · CO_GUARDIAN. 자녀가 포함된 세션 중 한국 기준 그 달의 COMPLETED · CANCELLED 세션을 날짜별로 돌려준다
          */
         get: operations["history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/children/me/next-pickup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 다음 픽업 (SET-12)
+         * @description CHILD 전용. 지금 이후 가장 가까운 READY 일정의 픽업을 돌려준다
+         */
+        get: operations["getNextPickup"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1203,10 +1263,23 @@ export interface components {
         };
         ConfirmRouteRequest: {
             /** Format: int64 */
-            spotId: number;
+            spotId?: number;
+            candidate?: components["schemas"]["SpotCandidateRequest"];
             navRouteId?: string;
             /** Format: int32 */
             stateVersion: number;
+            /** Format: int32 */
+            totalMeters?: number;
+        };
+        LocationRequest: {
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+        };
+        SpotCandidateRequest: {
+            name: string;
+            location: components["schemas"]["LocationRequest"];
         };
         CallGuardResponse: {
             met?: boolean;
@@ -1253,6 +1326,11 @@ export interface components {
             boardedAt?: string;
             location?: components["schemas"]["ChildLocationResponse"];
             readyAt?: string;
+            profileImageUrl?: string;
+        };
+        SessionDriverResponse: {
+            name?: string;
+            profileImageUrl?: string;
         };
         SessionEtaResponse: {
             stopEtaAt?: string;
@@ -1272,6 +1350,8 @@ export interface components {
             routeVersion?: number;
             /** Format: int32 */
             remainingMeters?: number;
+            /** Format: int32 */
+            totalMeters?: number;
         };
         SessionSpotResponse: {
             /** Format: int64 */
@@ -1304,6 +1384,7 @@ export interface components {
             route?: components["schemas"]["SessionRouteResponse"];
             boarding?: components["schemas"]["SessionBoardingResponse"];
             incident?: components["schemas"]["SessionIncidentResponse"];
+            driver?: components["schemas"]["SessionDriverResponse"];
         };
         VehicleLocationResponse: {
             /** Format: double */
@@ -1389,7 +1470,7 @@ export interface components {
         };
         ConsentRequest: {
             /** @enum {string} */
-            type: "TERMS" | "PRIVACY" | "MARKETING" | "LOCATION" | "PUSH";
+            type: "TERMS" | "PRIVACY" | "MARKETING" | "LOCATION" | "PUSH" | "SERVICE_IMPROVEMENT";
             agreed?: boolean;
         };
         VehicleLinkResponse: {
@@ -1451,7 +1532,9 @@ export interface components {
         };
         ChangeSpotRequest: {
             /** Format: int64 */
-            spotId: number;
+            spotId?: number;
+            candidate?: components["schemas"]["SpotCandidateRequest"];
+            here?: boolean;
             /** Format: int32 */
             stateVersion: number;
             /** Format: int32 */
@@ -1558,6 +1641,7 @@ export interface components {
             role: "GUARDIAN" | "CO_GUARDIAN" | "DELEGATE" | "TEACHER" | "CHILD";
             name: string;
             phone?: string;
+            grade?: string;
         };
         RegisterMemberResponse: {
             /** Format: int64 */
@@ -1618,6 +1702,7 @@ export interface components {
             phone?: string;
             /** @enum {string} */
             role?: "GUARDIAN" | "CO_GUARDIAN" | "DELEGATE" | "TEACHER" | "CHILD";
+            grade?: string;
         };
         MemberResponse: {
             /** Format: int64 */
@@ -1626,6 +1711,7 @@ export interface components {
             role?: "GUARDIAN" | "CO_GUARDIAN" | "DELEGATE" | "TEACHER" | "CHILD";
             name?: string;
             phone?: string;
+            grade?: string;
             /** @enum {string} */
             deviceStatus?: "CONNECTED" | "INVITE_PENDING" | "INVITE_EXPIRED" | "NONE";
         };
@@ -1637,6 +1723,7 @@ export interface components {
             /** Format: int64 */
             scheduleId?: number;
             childName?: string;
+            profileImageUrl?: string;
             academyName?: string;
             classEndTime?: string;
             targetPickupTime?: string;
@@ -1709,6 +1796,18 @@ export interface components {
             supported?: boolean;
             items?: components["schemas"]["RecommendedSpotResponse"][];
         };
+        Item: {
+            name?: string;
+            location?: components["schemas"]["LatLng"];
+            /** Format: int32 */
+            walkMeters?: number;
+            /** Format: int32 */
+            walkSeconds?: number;
+        };
+        NearbySpotsResponse: {
+            supported?: boolean;
+            items?: components["schemas"]["Item"][];
+        };
         SseEmitter: {
             /** Format: int64 */
             timeout?: number;
@@ -1767,7 +1866,7 @@ export interface components {
             memberName?: string;
             /** @enum {string} */
             role?: "GUARDIAN" | "CO_GUARDIAN" | "DELEGATE" | "TEACHER" | "CHILD";
-            requiredConsents?: ("TERMS" | "PRIVACY" | "MARKETING" | "LOCATION" | "PUSH")[];
+            requiredConsents?: ("TERMS" | "PRIVACY" | "MARKETING" | "LOCATION" | "PUSH" | "SERVICE_IMPROVEMENT")[];
             expiresAt?: string;
         };
         FamilyMemberResponse: {
@@ -1777,6 +1876,7 @@ export interface components {
             role?: "GUARDIAN" | "CO_GUARDIAN" | "DELEGATE" | "TEACHER" | "CHILD";
             name?: string;
             phone?: string;
+            grade?: string;
             /** @enum {string} */
             deviceStatus?: "CONNECTED" | "INVITE_PENDING" | "INVITE_EXPIRED" | "NONE";
             profileImageUrl?: string;
@@ -1795,6 +1895,9 @@ export interface components {
             vehicleId?: number;
             model?: string;
             plateNumberMasked?: string;
+        };
+        TodayPickupsResponse: {
+            items?: components["schemas"]["Item"][];
         };
         AcademySpotsResponse: {
             /** Format: int64 */
@@ -1858,17 +1961,13 @@ export interface components {
         ScheduleListResponse: {
             items?: components["schemas"]["ScheduleItemResponse"][];
         };
-        Item: {
-            /** Format: date */
-            date?: string;
-            /** Format: int64 */
-            sessionId?: number;
-            /** @enum {string} */
-            status?: "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED";
-            completedAt?: string;
-        };
         PickupHistoryResponse: {
             items?: components["schemas"]["Item"][];
+        };
+        NextPickupResponse: {
+            academyName?: string;
+            spotName?: string;
+            targetAt?: string;
         };
     };
     responses: never;
@@ -2005,7 +2104,7 @@ export interface operations {
                     "*/*": components["schemas"]["SessionViewResponse"];
                 };
             };
-            /** @description STATE_VERSION_CONFLICT (stateVersion이 다르거나 spotId가 세션 장소와 다름, 최신 session 함께) · SESSION_ALREADY_FINISHED (이미 완료 · 취소된 세션) */
+            /** @description STATE_VERSION_CONFLICT (stateVersion이 다르거나 spotId가 세션 장소와 다름, 최신 session 함께. SPOT_NOT_SAVED를 먼저 검사) · SESSION_ALREADY_FINISHED (이미 완료 · 취소된 세션) · candidate면 CHILD_ALREADY_MOVING (자녀가 이동 중) · CALL_ALREADY_SENT (합류 안내를 이미 보냄, 먼저 철회) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2014,7 +2113,7 @@ export interface operations {
                     "*/*": components["schemas"]["SessionViewResponse"];
                 };
             };
-            /** @description VALIDATION_FAILED (Idempotency-Key 없음) · SPOT_NOT_SAVED (가족이 저장한 장소가 아님) */
+            /** @description VALIDATION_FAILED (Idempotency-Key 없음 · spotId와 candidate가 둘 다 있거나 둘 다 없음 · 입력값 오류) · SPOT_NOT_SAVED (spotId가 가족이 저장한 장소가 아님, candidate면 세션 지금 장소를 못 찾음) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2681,7 +2780,10 @@ export interface operations {
     approveLinkWithProfileImage: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description 중복 요청 방지 키 */
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2744,7 +2846,7 @@ export interface operations {
                     "*/*": components["schemas"]["VehicleLinkResponse"];
                 };
             };
-            /** @description VALIDATION_FAILED · CONSENT_REQUIRED (TERMS · PRIVACY 누락) */
+            /** @description VALIDATION_FAILED (pushToken 1~255자) · CONSENT_REQUIRED (TERMS · PRIVACY 누락) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2809,7 +2911,7 @@ export interface operations {
                     "*/*": components["schemas"]["LinkCodeResponse"];
                 };
             };
-            /** @description LINK_CODE_REISSUE_LIMIT (연속 5번 넘게 발급) */
+            /** @description LINK_CODE_REISSUE_LIMIT (연속 5번 넘게 발급, retryAfterSeconds 300 포함) */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -3109,7 +3211,7 @@ export interface operations {
                     "*/*": components["schemas"]["SessionViewResponse"];
                 };
             };
-            /** @description CHILD_ALREADY_MOVING (자녀가 이동 중) · CALL_ALREADY_SENT (합류 안내를 이미 보냄, 먼저 철회) · STATE_VERSION_CONFLICT (최신 SessionView 함께) · SESSION_ALREADY_FINISHED (이미 완료 · 취소된 세션) */
+            /** @description CHILD_ALREADY_MOVING (자녀가 이동 중) · CALL_ALREADY_SENT (합류 안내를 이미 보냄, 먼저 철회) · STATE_VERSION_CONFLICT (stateVersion · spotVersion이 다름, 최신 SessionView 함께) · SESSION_ALREADY_FINISHED (이미 완료 · 취소된 세션) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -3118,7 +3220,7 @@ export interface operations {
                     "*/*": components["schemas"]["SessionViewResponse"];
                 };
             };
-            /** @description VALIDATION_FAILED (Idempotency-Key 없음 · 입력값 오류) */
+            /** @description VALIDATION_FAILED (Idempotency-Key 없음 · spotId · candidate · here(true) 중 하나가 아님 · 입력값 오류, here면 fields here: 받은 차량 위치 없음) · SPOT_NOT_SAVED (spotId가 가족 장소가 아님, candidate · here면 세션 지금 장소를 못 찾음) · CALL_GUARD_UNMET (here면 합류 호출 조건 미충족, error.unmet 함께) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3333,7 +3435,7 @@ export interface operations {
                     "*/*": components["schemas"]["HelpRequestResponse"];
                 };
             };
-            /** @description HELP_REQUEST_TOO_SOON (error.nextAllowedAt 함께) */
+            /** @description HELP_REQUEST_TOO_SOON (retryAfterSeconds 포함, error.nextAllowedAt 함께) */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -3830,7 +3932,10 @@ export interface operations {
     acceptInvite: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description 중복 요청 방지 키 */
+                "Idempotency-Key": string;
+            };
             path: {
                 token: string;
             };
@@ -3878,7 +3983,7 @@ export interface operations {
                     "*/*": components["schemas"]["AcceptInviteResponse"];
                 };
             };
-            /** @description VALIDATION_FAILED · CONSENT_REQUIRED (필수 동의 누락) */
+            /** @description VALIDATION_FAILED (pushToken 1~255자) · CONSENT_REQUIRED (필수 동의 누락) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4084,7 +4189,7 @@ export interface operations {
                     "*/*": components["schemas"]["RegisterMemberResponse"];
                 };
             };
-            /** @description VALIDATION_FAILED (입력값 · Idempotency-Key 없음) · MEMBER_LIMIT_EXCEEDED(자녀 외 멤버가 이미 5명) */
+            /** @description VALIDATION_FAILED (입력값 · Idempotency-Key 없음, grade 0자 · 21자 이상이면 fields grade) · MEMBER_LIMIT_EXCEEDED(자녀 외 멤버가 이미 5명) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4107,7 +4212,10 @@ export interface operations {
     issueInvite: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description 중복 요청 방지 키 */
+                "Idempotency-Key": string;
+            };
             path: {
                 userId: number;
             };
@@ -4227,7 +4335,7 @@ export interface operations {
                     "*/*": components["schemas"]["SetupCompletionResponse"];
                 };
             };
-            /** @description VALIDATION_FAILED (settingsVersion 필수 · Idempotency-Key 필수) · SETUP_INCOMPLETE (누락 항목 있음) */
+            /** @description VALIDATION_FAILED (settingsVersion 필수 · Idempotency-Key 필수) · SETUP_INCOMPLETE (누락 항목 있음, missing 함께) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4712,7 +4820,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description NOT_FOUND (없거나 다른 가족의 멤버) */
+            /** @description NOT_FOUND (없거나 다른 가족의 멤버, 이미 해제된 멤버) */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4750,7 +4858,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 수정된 멤버 */
+            /** @description 수정된 멤버(grade 포함, 없으면 null) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4777,7 +4885,7 @@ export interface operations {
                     "*/*": components["schemas"]["MemberResponse"];
                 };
             };
-            /** @description NOT_FOUND (없거나 다른 가족의 멤버) */
+            /** @description NOT_FOUND (없거나 다른 가족의 멤버, 해제된 멤버) */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -4786,7 +4894,7 @@ export interface operations {
                     "*/*": components["schemas"]["MemberResponse"];
                 };
             };
-            /** @description VALIDATION_FAILED (이름 · 전화번호 형식 오류, GUARDIAN 자신의 role 변경, role GUARDIAN 지정, phone 없는 CHILD를 자녀 외 role로 변경) · MEMBER_LIMIT_EXCEEDED(CHILD를 자녀 외 role로 바꿀 때 자녀 외 멤버가 이미 5명) */
+            /** @description VALIDATION_FAILED (이름 · 전화번호 형식 오류, grade 0자 · 21자 이상이면 fields grade, GUARDIAN 자신의 role 변경, role GUARDIAN 지정, phone 없는 CHILD를 자녀 외 role로 변경) · MEMBER_LIMIT_EXCEEDED(CHILD를 자녀 외 role로 바꿀 때 자녀 외 멤버가 이미 5명) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -4809,7 +4917,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description weekStart · days[]{date, pickups[]{scheduleId, childName, academyName, classEndTime, targetPickupTime}} · readiness{startable, missing[]} */
+            /** @description weekStart · days[]{date, pickups[]{scheduleId, childName, profileImageUrl(없으면 null), academyName, classEndTime, targetPickupTime}} · readiness{startable, missing[](CHILD_DEVICE · SCHEDULE · PICKUP_SPOT)} */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4932,7 +5040,7 @@ export interface operations {
                     "*/*": components["schemas"]["LinkStatusResponse"];
                 };
             };
-            /** @description TOO_MANY_REQUESTS (1초보다 자주 부름) */
+            /** @description TOO_MANY_REQUESTS (1초보다 자주 부름, retryAfterSeconds 1 포함) */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -4981,7 +5089,7 @@ export interface operations {
                     "*/*": components["schemas"]["LinkCodeInfoResponse"];
                 };
             };
-            /** @description LINK_CODE_ATTEMPT_LIMIT (같은 기기에서 5번 실패, 1분 동안) */
+            /** @description LINK_CODE_ATTEMPT_LIMIT (같은 기기에서 5번 실패, 1분 동안, 풀릴 때까지 남은 retryAfterSeconds 포함) */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -5110,6 +5218,65 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SpotRecommendationsResponse"];
+                };
+            };
+        };
+    };
+    recommendNearbySpots: {
+        parameters: {
+            query?: {
+                /** @description 학원 id (필수) */
+                academyId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description supported, items[]{name, location, walkMeters, walkSeconds} */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NearbySpotsResponse"];
+                };
+            };
+            /** @description UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NearbySpotsResponse"];
+                };
+            };
+            /** @description FORBIDDEN (허용되지 않은 역할) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NearbySpotsResponse"];
+                };
+            };
+            /** @description NOT_FOUND (학원 없음) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NearbySpotsResponse"];
+                };
+            };
+            /** @description VALIDATION_FAILED (academyId 없음 또는 숫자가 아님) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NearbySpotsResponse"];
                 };
             };
         };
@@ -5501,7 +5668,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 가족 · 차량 · 멤버 목록. members[]마다 profileImageUrl(사진이 있으면 그 사진의 서명 URL, 없으면 기본 아바타 서명 URL, 저장소 설정이 없을 때만 null) */
+            /** @description 가족 · 차량 · 멤버 목록. members[]는 해제된 멤버를 빼고 userId 오름차순이며 grade(없으면 null)를 담는다. members[]마다 profileImageUrl(사진이 있으면 그 사진의 서명 URL, 없으면 기본 아바타 서명 URL, 저장소 설정이 없을 때만 null) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5526,6 +5693,44 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FamilyResponse"];
+                };
+            };
+        };
+    };
+    getTodayPickups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description items[]{scheduleId, childName, academyName, targetAt(KST +09:00), status(SCHEDULED · IN_PROGRESS · COMPLETED)} */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TodayPickupsResponse"];
+                };
+            };
+            /** @description UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TodayPickupsResponse"];
+                };
+            };
+            /** @description FORBIDDEN (GUARDIAN · CO_GUARDIAN이 아님) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TodayPickupsResponse"];
                 };
             };
         };
@@ -5649,6 +5854,44 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PickupHistoryResponse"];
+                };
+            };
+        };
+    };
+    getNextPickup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description academyName · spotName(기본 장소가 없으면 null) · targetAt(KST +09:00). 남은 일정이 없으면 200 JSON null */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NextPickupResponse"];
+                };
+            };
+            /** @description UNAUTHORIZED */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+            /** @description FORBIDDEN (CHILD가 아님) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
                 };
             };
         };

@@ -50,8 +50,8 @@ export function toCandidate(
 }
 
 /**
- * SPOT-04 추천 후보. 학원 id와 출발 위치가 있어야 부른다.
- * 출발 위치를 모르면 학원 위치를 넣는다 (걷는 거리 순 비교용, 운전 시간은 짧게 나온다).
+ * 추천 후보. 출발 위치가 있으면 SPOT-04(운전 시간 포함), 없으면 SPOT-05 학원 근처(걷는 거리 순).
+ * 두 API 모두 { supported, items } 객체로 온다.
  */
 export function useSpotRecommendations(
   academyId?: number,
@@ -59,8 +59,17 @@ export function useSpotRecommendations(
 ) {
   return useQuery({
     queryKey: ['spot-recommendations', academyId, origin?.lat, origin?.lng],
-    enabled: academyId !== undefined && origin !== undefined,
+    enabled: academyId !== undefined,
     queryFn: async () => {
+      if (!origin) {
+        const r = await spotApi.nearby(academyId!);
+        return {
+          supported: r.supported ?? false,
+          items: (r.items ?? []).map((it, i) =>
+            toCandidate({ ...it, rank: i + 1, kind: undefined, cautions: [] }),
+          ),
+        };
+      }
       const r = await spotApi.recommend({
         academyId: academyId!,
         origin: origin!,

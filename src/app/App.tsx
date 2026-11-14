@@ -1,9 +1,11 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ApiError } from '../api/errors';
+import { SplashScreen } from '../features/splash/SplashScreen';
+import { startDemoLiveActivityIfAsked } from '../services/liveActivity';
 import { usePushRegistration } from '../services/usePushRegistration';
 import { useAuthStore } from '../stores/authStore';
 import { linking } from './navigation/linking';
@@ -28,8 +30,11 @@ function PushRegistration() {
 
 export default function App() {
   const restore = useAuthStore(s => s.restore);
+  // 스플래시(애니메이션 ≈ 2.8초) 동안 로그인 정보를 복원한다
+  const [splash, setSplash] = useState(true);
   useEffect(() => {
     restore();
+    startDemoLiveActivityIfAsked();
   }, [restore]);
 
   return (
@@ -40,6 +45,7 @@ export default function App() {
         <NavigationContainer linking={linking}>
           <RootNavigator />
         </NavigationContainer>
+        {splash ? <SplashScreen onDone={() => setSplash(false)} /> : null}
       </QueryClientProvider>
     </SafeAreaProvider>
   );

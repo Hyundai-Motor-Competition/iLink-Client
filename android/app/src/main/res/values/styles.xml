@@ -4,6 +4,8 @@
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <!-- 스플래시(JS)와 같은 바탕색. 앱이 뜨기 전 흰 화면이 번쩍이지 않게 -->
+        <item name="android:windowBackground">@color/splash_bg</item>
     </style>
 
 </resources>

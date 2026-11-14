@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { ScreenScaffold } from '../../shared/ui/ScreenScaffold';
 import { useActiveSession, useSessionView } from '../session/useSession';
 import { useChildPrepNotice } from './useChildPrepNotice';
+import { useChildLiveActivity } from '../../services/liveActivity';
 
 const TITLES: Record<ChildScreen, string> = {
   C01: '실내에서 기다려요',
@@ -20,6 +21,8 @@ export function ChildSessionScreen() {
   const sessionId = active.data?.sessionId;
   const { data } = useSessionView(sessionId);
   const prepNoticeReceived = useChildPrepNotice(sessionId);
+  // 보호자가 출발하면 잠금화면 · 다이나믹 아일랜드에 진행 상황 (iOS)
+  useChildLiveActivity(data);
 
   if (!data || !userId) {
     return (

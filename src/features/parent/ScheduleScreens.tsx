@@ -24,7 +24,7 @@ import {
   View,
 } from 'react-native';
 import type { DemoStackParams } from '../../app/navigation/types';
-import { messageFor } from '../../domain/errorCodes';
+import { messageFor, notFoundMessage } from '../../domain/errorCodes';
 import { ApiError } from '../../api/errors';
 import { pretendard as pf, v2 } from '../../shared/theme/tokens';
 import {
@@ -857,7 +857,9 @@ export function ScheduleReviewScreen({ navigation }: P<'PScheduleReview'>) {
     } catch (e) {
       setError(
         e instanceof ApiError
-          ? messageFor(e.code, e.message)
+          ? e.code === 'NOT_FOUND'
+            ? notFoundMessage('member') // 해제된 자녀의 일정 등록 (2026.11.14)
+            : messageFor(e.code, e.message)
           : '등록하지 못했어요. 다시 시도해 주세요',
       );
     } finally {

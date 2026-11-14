@@ -28,7 +28,8 @@ class Api:
         self.base = base.rstrip("/")
         self.rows = []  # (Swagger ID, 메서드, 경로, 상태, 결과)
 
-    def call(self, sid, method, path, token=None, body=None, query=None, idem=False, headers=None, stream=False):
+    def call(self, sid, method, path, token=None, body=None, query=None, idem=False, headers=None, stream=False, expect=None):
+        """expect: 일부러 오류를 확인하는 호출이면 기대 상태 코드. 그 코드가 오면 성공으로 센다"""
         url = self.base + path
         if query:
             url += "?" + urllib.parse.urlencode({k: v for k, v in query.items() if v is not None})
@@ -69,8 +70,10 @@ class Api:
             status = -1
             payload = {"_exception": type(e).__name__ + ": " + str(e)[:100]}
         shown = path.replace(path.split("/invites/")[-1].split("/")[0], "{token}") if "/invites/" in path and "/members/" not in path else path
-        self.rows.append((sid, method, shown, status, summarize(status, payload)))
-        mark = "OK " if 200 <= status < 300 else "ERR"
+        ok = (status == expect) if expect else 200 <= status < 300
+        label = f"{sid} (기대 {expect})" if expect else sid
+        self.rows.append((label, method, shown, status, summarize(status, payload), ok))
+        mark = "OK " if ok else "ERR"
         print(f"{mark} {status:>4} {sid:<16} {method:<6} {path}  {self.rows[-1][4]}")
         return status, payload
 
@@ -199,6 +202,14 @@ def main():
     origin = f"{loc['lat'] - 0.008},{loc['lng'] + 0.003}"
     api.call("SPOT-04", "GET", "/v1/pickup-spot-recommendations", token=vtok, query={"academyId": academy_id, "origin": origin})
     api.call("SPOT-04", "GET", "/v1/pickup-spot-recommendations", token=gtok, query={"academyId": academy_id, "origin": origin})
+    # SPOT-05 학원 기준 근처 추천 (출발 위치 없이). 응답은 배열이 아니라 { supported, items[] } (2026.11.14~)
+    _, nb = api.call("SPOT-05", "GET", "/v1/pickup-spot-recommendations/nearby", token=vtok, query={"academyId": academy_id})
+    print("    nearby 응답 모양:", type(nb).__name__, "· items", len((nb or {}).get("items") or []) if isinstance(nb, dict) else "-")
+    api.call("SPOT-05", "GET", "/v1/pickup-spot-recommendations/nearby", token=gtok, query={"academyId": academy_id})
+    # SET-13 오늘의 픽업(보호자) · SET-12 다음 픽업(자녀)
+    _, tp = api.call("SET-13", "GET", "/v1/families/me/today-pickups", token=gtok)
+    print("    today-pickups 첫 항목 키:", sorted(((tp or {}).get("items") or [{}])[0].keys()) if isinstance(tp, dict) else tp)
+    api.call("SET-12", "GET", "/v1/children/me/next-pickup", token=ctok)
     _, sv = api.call("SES-02", "POST", "/v1/pickup-sessions", token=vtok, body={"scheduleIds": [sched_id], "date": today.isoformat()}, idem=True)
     sid = (sv or {}).get("sessionId")
     ver = {"v": (sv or {}).get("stateVersion", 0), "spot": 0}
@@ -270,7 +281,7 @@ def main():
     noti_id = (items or [{}])[0].get("notificationId") if items else None
     api.call("NOTI-01", "POST", f"/v1/notifications/{noti_id}/delivery-receipt", token=gtok, body={"receivedAt": now_iso()})
     # 마지막 발송 뒤 1분 안이면 429(RESEND_TOO_SOON)가 규칙이다
-    api.call("NOTI-03", "POST", f"/v1/notifications/{noti_id}/resend", token=gtok)
+    api.call("NOTI-03", "POST", f"/v1/notifications/{noti_id}/resend", token=gtok, expect=429)
     refresh()
     track(api.call("SES-11", "POST", f"/v1/pickup-sessions/{sid}/completion", token=vtok, body={"mode": "MANUAL", "stateVersion": ver["v"]}, idem=True)[1])
     api.call("OUT-02", "GET", f"/v1/pickup-sessions/{sid}/outcome", token=gtok)
@@ -303,19 +314,30 @@ def main():
 
     # ── 5. 정리 ──
     api.call("SPOT-03 DEL", "DELETE", f"/v1/pickup-spots/{spot2}", token=gtok, idem=True)
+    # 해제된 멤버 · 자녀 (2026.11.14~): 해제 전에 안 쓴 초대를 하나 만들어 두고, 해제 뒤 오류를 확인한다
+    _, inv2 = api.call("FAM-04", "POST", f"/v1/families/me/members/{child_id}/invites", token=gtok, body={"replaceDevice": True})
+    unused = ((inv2 or {}).get("inviteUrl") or "").rstrip("/").split("/")[-1]
     api.call("FAM-07", "DELETE", f"/v1/families/me/members/{child_id}", token=gtok, idem=True)
+    expect = []
+    expect.append(("FAM-04 해제 후", 404, api.call("FAM-04", "POST", f"/v1/families/me/members/{child_id}/invites", token=gtok, body={"replaceDevice": False}, expect=404)[0]))
+    expect.append(("FAM-05 폐기된 초대", 410, api.call("FAM-05", "GET", f"/v1/invites/{unused}", expect=410)[0]))
+    expect.append(("FAM-06 폐기된 초대", 410, api.call("FAM-06", "POST", f"/v1/invites/{unused}/acceptance", body={"consents": consents, "platform": "ANDROID", "pushToken": "x"}, expect=410)[0]))
+    expect.append(("SET-02 해제된 자녀", 404, api.call("SET-02", "POST", f"/v1/children/{child_id}/schedules", token=gtok, body=sched_body, expect=404)[0]))
+    expect.append(("SET-03 해제된 자녀 일정", 404, api.call("SET-03", "PUT", f"/v1/schedules/{sched_id}", token=gtok, body=sched_body, expect=404)[0]))
+    expect.append(("SET-04 해제된 자녀", 404, api.call("SET-04", "GET", f"/v1/children/{child_id}/schedules", token=gtok, expect=404)[0]))
+    print("    해제 후 기대 오류:", [(n, f"{got}{'✓' if got == want else ' ≠ ' + str(want)}") for n, want, got in expect])
     api.call("AUTH-04", "DELETE", "/v1/vehicle-devices/me/session", token=vtok)
     api.call("LINK-05", "DELETE", f"/v1/vehicle-links/{vehicle_id}", token=gtok, idem=True)
 
-    ok = sum(1 for r in api.rows if 200 <= r[3] < 300)
+    ok = sum(1 for r in api.rows if r[5])
     ids = {(r[1], r[0].split()[0]) for r in api.rows}
-    passed = {(r[1], r[0].split()[0]) for r in api.rows if 200 <= r[3] < 300}
+    passed = {(r[1], r[0].split()[0]) for r in api.rows if r[5]}
     print(f"\n성공 {ok} / 호출 {len(api.rows)} · API {len(ids)}개 중 {len(passed)}개 정상 응답")
     if a.out:
         with open(a.out, "w") as f:
             f.write(f"# Swagger API 점검 결과\n\n서버: {a.base}  \n실행: {datetime.now(KST):%Y-%m-%d %H:%M} KST  \n성공 {ok} / 호출 {len(api.rows)} · API {len(ids)}개 중 {len(passed)}개 정상 응답\n\n")
             f.write("| Swagger ID | 메서드 | 경로 | 상태 | 응답 요약 |\n|---|---|---|---|---|\n")
-            for sid_, m, p, s, msg in api.rows:
+            for sid_, m, p, s, msg, _ok in api.rows:
                 f.write(f"| {sid_} | {m} | `{p}` | {s} | {msg.replace('|', '/')} |\n")
     return 0
 

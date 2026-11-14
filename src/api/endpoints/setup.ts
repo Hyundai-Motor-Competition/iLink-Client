@@ -48,6 +48,16 @@ export const spotApi = {
     api.delete<void>(`/v1/pickup-spots/${spotId}`, { idempotencyKey }),
 
   /**
+   * SPOT-05 학원 기준 근처 장소 추천 (출발 위치 없이, 걷는 거리 짧은 순 최대 8개).
+   * 응답은 배열이 아니라 { supported, items: [{ name, location, walkMeters, walkSeconds }] } 객체다 (2026.11.14).
+   */
+  nearby: (academyId: number) =>
+    api.get<Schemas['NearbySpotsResponse']>(
+      '/v1/pickup-spot-recommendations/nearby',
+      { query: { academyId } },
+    ),
+
+  /**
    * SPOT-04 픽업 장소 추천: 학원 근처 공영주차장 · 길가 정차 후보를 순위대로.
    * origin은 출발 위치 '위도,경도'. 지원 지역 밖이면 supported = false, items = [].
    * 결과에는 spotId가 없다. 보호자가 고르면 SPOT-02로 저장해야 차량이 길안내할 수 있다.

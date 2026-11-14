@@ -70,3 +70,16 @@ Swagger와 실제 서버가 다른 점 (클라이언트에 반영 필요):
 - **보류(CALL-01) · 장소 변경(SES-05)**: 보호자 토큰으로 된다. 장소를 바꾸면 `spot`이 SELECTED로 돌아가 차량이 SES-04로 다시 확정해야 한다
 - **학원 검색(SET-01)**: 보호자 토큰만 된다(차량 토큰 403)
 - **설정 완료(SET-08)**: 자녀가 초대를 수락하기 전에는 CHILD_DEVICE로 막힌다. 모바일은 일정 · 장소 저장은 하고 설정 완료 실패는 무시한다
+
+## 2026.11.14 서버 변경 확인 (`scripts/swagger-smoke.py`, API 65개 모두 기대대로)
+
+- **SPOT-05 학원 근처 추천** `GET /v1/pickup-spot-recommendations/nearby?academyId`: 배열이 아니라 `{ supported, items: [{ name, location, walkMeters, walkSeconds }] }` 객체. 클라이언트는 `items`를 꺼내 쓴다 (`spotApi.nearby`, 차량 `VehicleApi.nearbySpots`)
+- **해제된 멤버 · 자녀** (실제 응답 확인):
+  - 해제된 멤버의 초대 발급(FAM-04) → 404 NOT_FOUND
+  - 멤버를 해제하면 안 쓴 초대도 폐기 → 그 링크의 조회(FAM-05) · 수락(FAM-06) → 410 INVITE_EXPIRED
+  - 해제된 자녀의 일정 등록(SET-02) · 수정(SET-03) · 목록(SET-04) → 404 NOT_FOUND
+  - 앱 처리: 초대 화면은 404 · 410에 맞는 문구, 일정 목록은 해제된 자녀만 빈 목록으로 두고 나머지를 보여 준다
+- **새 API**: SET-12 다음 픽업(자녀) `GET /v1/children/me/next-pickup`, SET-13 오늘의 픽업(보호자) `GET /v1/families/me/today-pickups`
+- **경로 확정 · 장소 변경**: SES-04 · SES-05가 `spotId` 대신 `candidate { name, location }`(추천 후보)도 받는다. SES-05는 `here`(지금 차 위치)도 받는다
+- **Swagger 스키마 이름 충돌 (서버 확인 필요)**: `Item` 이름을 세 응답이 같이 쓴다. Swagger에는 `Item = { name, location, walkMeters, walkSeconds }`(SPOT-05) 하나만 남아서, SET-13 오늘의 픽업(실제 `{ scheduleId, childName, academyName, targetAt, status }`)과 OUT-01 픽업 이력의 `items` 타입이 틀리게 나온다. 생성된 타입(`schema.d.ts`)도 같이 틀린다
+- **SES-08 SSE**: 연결 직후 이벤트가 없으면 응답 헤더가 늦게 와 가끔 15초 안에 열리지 않는다 (Cloudflare 버퍼링 추정). 모바일은 폴링을 쓰므로 영향 없음

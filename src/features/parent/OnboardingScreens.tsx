@@ -31,7 +31,7 @@ import { mock } from './mock';
 import { useScheduleDraft } from './scheduleDraft';
 import { newIdempotencyKey } from '../../api/client';
 import { ApiError } from '../../api/errors';
-import { messageFor } from '../../domain/errorCodes';
+import { messageFor, notFoundMessage } from '../../domain/errorCodes';
 import { useAuthStore } from '../../stores/authStore';
 import {
   approveLink,
@@ -661,6 +661,8 @@ export function InviteSentScreen({ navigation }: P<'PInviteSent'>) {
 function errorText(e: unknown) {
   if (e instanceof ApiError) {
     if (e.isNetwork) return '인터넷 연결을 확인해 주세요.';
+    // 해제된 자녀에게 초대를 발급하면 404 (2026.11.14)
+    if (e.code === 'NOT_FOUND') return notFoundMessage('member');
     return messageFor(e.code, e.message);
   }
   return '잠시 후 다시 시도해 주세요.';

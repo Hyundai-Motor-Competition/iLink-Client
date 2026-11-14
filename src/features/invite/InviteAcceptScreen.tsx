@@ -6,7 +6,7 @@ import { newIdempotencyKey } from '../../api/client';
 import { inviteApi } from '../../api/endpoints/invite';
 import { ApiError } from '../../api/errors';
 import type { AuthStackParams } from '../../app/navigation/types';
-import { messageFor } from '../../domain/errorCodes';
+import { messageFor, notFoundMessage } from '../../domain/errorCodes';
 import { useAuthStore } from '../../stores/authStore';
 import { Button } from '../../shared/ui/Button';
 import { ScreenScaffold } from '../../shared/ui/ScreenScaffold';
@@ -51,7 +51,11 @@ export function InviteAcceptScreen({ route }: Props) {
       });
     } catch (e) {
       const err = e instanceof ApiError ? e : new ApiError(0, null);
-      setError(messageFor(err.code, err.message));
+      setError(
+        err.status === 404
+          ? notFoundMessage('invite')
+          : messageFor(err.code, err.message),
+      );
     } finally {
       setBusy(false);
     }
@@ -59,7 +63,9 @@ export function InviteAcceptScreen({ route }: Props) {
 
   const loadError =
     info.error instanceof ApiError
-      ? messageFor(info.error.code, info.error.message)
+      ? info.error.status === 404
+        ? notFoundMessage('invite')
+        : messageFor(info.error.code, info.error.message)
       : null;
 
   return (

@@ -274,11 +274,20 @@ export function useSchedules(childIds: number[]) {
     queryKey: ['schedules', ...childIds],
     enabled: on && childIds.length > 0,
     queryFn: async () => {
+      // 해제된 자녀는 404 (2026.11.14). 그 자녀만 빈 목록으로 두고 나머지는 보여 준다
       const lists = await Promise.all(
-        childIds.map(async id => ({
-          childId: id,
-          items: (await scheduleApi.list(id)).items ?? [],
-        })),
+        childIds.map(async id => {
+          try {
+            return {
+              childId: id,
+              items: (await scheduleApi.list(id)).items ?? [],
+            };
+          } catch (e) {
+            if (e instanceof ApiError && e.status === 404)
+              return { childId: id, items: [] };
+            throw e;
+          }
+        }),
       );
       return lists;
     },

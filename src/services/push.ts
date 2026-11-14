@@ -1,15 +1,17 @@
 // OS 푸시(OS-P01, OS-C01~03) — FCM (@react-native-firebase/messaging).
 // 수신 시 반드시 최신 세션을 조회하고 domain/session.isStalePush로 만료 여부를 확인한 뒤 화면을 연다.
 // Android만 설정되어 있다(android/app/google-services.json). iOS는 GoogleService-Info.plist를 받은 뒤 켠다.
-import { getApp } from '@react-native-firebase/app';
-import {
-  getMessaging,
-  getToken,
-  onMessage,
-  onTokenRefresh,
-  setBackgroundMessageHandler,
-} from '@react-native-firebase/messaging';
 import { PermissionsAndroid, Platform } from 'react-native';
+
+// Firebase 네이티브 모듈은 Android에만 연결돼 있다 (react-native.config.js). iOS에서는 불러오지 않는다
+const fb =
+  Platform.OS === 'android'
+    ? {
+        app: require('@react-native-firebase/app') as typeof import('@react-native-firebase/app'),
+        msg: require('@react-native-firebase/messaging') as typeof import('@react-native-firebase/messaging'),
+      }
+    : null;
+const messaging = () => fb!.msg.getMessaging(fb!.app.getApp());
 
 export type PushPayload = {
   type: string;
@@ -61,18 +63,18 @@ export const push: PushService = {
     // 권한이 없어도 토큰은 받을 수 있지만, 알림이 보이지 않으므로 먼저 묻는다
     await askPermission();
     try {
-      return await getToken(getMessaging(getApp()));
+      return await fb!.msg.getToken(messaging());
     } catch {
       return null;
     }
   },
   onTokenRefresh(cb) {
     if (!supported) return () => {};
-    return onTokenRefresh(getMessaging(getApp()), cb);
+    return fb!.msg.onTokenRefresh(messaging(), cb);
   },
   onMessage(cb) {
     if (!supported) return () => {};
-    return onMessage(getMessaging(getApp()), msg => {
+    return fb!.msg.onMessage(messaging(), msg => {
       const p = toPayload(msg);
       if (p) cb(p);
     });
@@ -82,5 +84,5 @@ export const push: PushService = {
 /** 앱이 꺼져 있거나 뒤에 있을 때 온 푸시. 화면은 사용자가 알림을 누를 때 연다 (index.js에서 한 번 등록) */
 export function registerBackgroundHandler() {
   if (!supported) return;
-  setBackgroundMessageHandler(getMessaging(getApp()), async () => {});
+  fb!.msg.setBackgroundMessageHandler(messaging(), async () => {});
 }

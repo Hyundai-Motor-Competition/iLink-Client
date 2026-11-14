@@ -1,5 +1,11 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Settings,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { isGuardianRole, useAuthStore } from '../../stores/authStore';
 import { DemoNavigator } from './DemoNavigator';
 import { GuardianHomeScreen } from '../../features/session/GuardianHomeScreen';
@@ -30,7 +36,14 @@ export function RootNavigator() {
   // 로그인 전(데모)과 보호자 로그인 뒤 모두 디자인 화면을 쓴다.
   // 같은 자리의 같은 컴포넌트라 가족 프로필 등록 중 로그인(LINK-04)해도 화면 이동 기록이 이어진다.
   if (status === 'signedOut' || !auth || isGuardianRole(auth.role)) {
-    return <DemoNavigator initialRouteName={auth ? 'PMain' : 'Landing'} />;
+    // 시연 · 캡처용: iOS 실행 인자 `-demoRoute PMain`이면 로그인 없이 메인(데모 데이터)으로 시작
+    const demoMain =
+      Platform.OS === 'ios' && Settings.get('demoRoute') === 'PMain';
+    return (
+      <DemoNavigator
+        initialRouteName={auth || demoMain ? 'PMain' : 'Landing'}
+      />
+    );
   }
 
   if (isGuardianRole(auth.role)) {

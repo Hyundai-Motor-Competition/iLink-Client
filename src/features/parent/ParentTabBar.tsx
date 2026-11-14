@@ -77,7 +77,10 @@ export function ParentTabBar({
   );
 }
 
-/* 시안: 287 x 63pt 검은 알약(가운데), 고른 탭 92 x 57pt 흰 알약 */
+/*
+ * 시안: 287 x 63pt 검은 알약(가운데), 고른 탭 92 x 57pt 흰 알약.
+ * 나머지 세 아이콘은 남은 폭(287 - 6 - 92 = 189)을 63pt씩 나눠 고르게 놓는다 (늘어나는 폭으로 두면 아이콘이 한쪽으로 몰린다)
+ */
 const s = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   bar: {
@@ -90,14 +93,13 @@ const s = StyleSheet.create({
     paddingHorizontal: 3,
   },
   item: {
-    flex: 1,
+    width: 63,
     height: 57,
     borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
   },
   itemOn: {
-    flex: 0,
     width: 92,
     flexDirection: 'row',
     gap: 6,
