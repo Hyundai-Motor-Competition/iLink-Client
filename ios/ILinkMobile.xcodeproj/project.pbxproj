@@ -15,6 +15,7 @@
 		4063E73D9859A9C48FF71820 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		4623D2E24B00AF71C6347617 /* PickupActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D53BD53A84F29842AC195AD9 /* PickupActivityAttributes.swift */; };
 		4CAC3BFC4E06A11E67D1C538 /* ILinkLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5837299B87AB3B8360A1740C /* ILinkLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4F9819D14C8EE4E57DB754A7 /* LocalNotifyModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFCE4F7A33AFF2C767C70FC5 /* LocalNotifyModule.swift */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		761780EF2CA45674006654EF /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EE2CA45674006654EF /* SceneDelegate.swift */; };
 		7CA09EAF7A099F28BAA0447D /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 58269C20427BA9779E85508A /* ActivityKit.framework */; };
@@ -29,6 +30,7 @@
 		E953820AA9AFBCBD48D13CD6 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 75730FF91F344AF882C411FD /* SwiftUI.framework */; };
 		F3704A273DF3905DEE95F503 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BAE0ED07EF2783397582B707 /* Foundation.framework */; };
 		F39238B32B79DD3DFE0BDECF /* PickupActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D53BD53A84F29842AC195AD9 /* PickupActivityAttributes.swift */; };
+		FB8386168A16EF07820D16E1 /* LocalNotifyModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 844E754F36207F12F07B9B36 /* LocalNotifyModule.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +74,7 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ILinkMobile/AppDelegate.swift; sourceTree = "<group>"; };
 		761780EE2CA45674006654EF /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = ILinkMobile/SceneDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ILinkMobile/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		844E754F36207F12F07B9B36 /* LocalNotifyModule.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = LocalNotifyModule.m; path = ILinkMobile/LocalNotifyModule.m; sourceTree = "<group>"; };
 		8837011253DD8FF9F1120A76 /* Pretendard-ExtraBold.otf */ = {isa = PBXFileReference; includeInIndex = 1; path = "Pretendard-ExtraBold.otf"; sourceTree = "<group>"; };
 		95995A330A84945A5CDAAA4E /* Pretendard-Bold.otf */ = {isa = PBXFileReference; includeInIndex = 1; path = "Pretendard-Bold.otf"; sourceTree = "<group>"; };
 		9E3304B99B2D35882E9FC79B /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -79,6 +82,7 @@
 		B5DA873EAAA54D534D58A9BB /* Pretendard-Regular.otf */ = {isa = PBXFileReference; includeInIndex = 1; path = "Pretendard-Regular.otf"; sourceTree = "<group>"; };
 		BAE0ED07EF2783397582B707 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		CDE392824F0F80817EC9F66E /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		CFCE4F7A33AFF2C767C70FC5 /* LocalNotifyModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LocalNotifyModule.swift; path = ILinkMobile/LocalNotifyModule.swift; sourceTree = "<group>"; };
 		D53BD53A84F29842AC195AD9 /* PickupActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PickupActivityAttributes.swift; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F9712A83CB1ABCED68BDE184 /* LiveActivityModule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LiveActivityModule.swift; path = ILinkMobile/LiveActivityModule.swift; sourceTree = "<group>"; };
@@ -120,6 +124,8 @@
 				F9712A83CB1ABCED68BDE184 /* LiveActivityModule.swift */,
 				432C68BDA9AD95FCEE9D3741 /* LiveActivityModule.m */,
 				57A8D86CB42B79FD3F860192 /* Fonts */,
+				CFCE4F7A33AFF2C767C70FC5 /* LocalNotifyModule.swift */,
+				844E754F36207F12F07B9B36 /* LocalNotifyModule.m */,
 			);
 			name = ILinkMobile;
 			sourceTree = "<group>";
@@ -405,6 +411,8 @@
 				268765BB3F9383C6C13B1546 /* LiveActivityModule.swift in Sources */,
 				097978362F0FFFB298914E8F /* LiveActivityModule.m in Sources */,
 				4623D2E24B00AF71C6347617 /* PickupActivityAttributes.swift in Sources */,
+				4F9819D14C8EE4E57DB754A7 /* LocalNotifyModule.swift in Sources */,
+				FB8386168A16EF07820D16E1 /* LocalNotifyModule.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

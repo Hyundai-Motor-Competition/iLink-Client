@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ApiError } from '../api/errors';
 import { SplashScreen } from '../features/splash/SplashScreen';
 import { startDemoLiveActivityIfAsked } from '../services/liveActivity';
+import { useGuardianLocalNotifications } from '../services/localNotify';
 import { usePushRegistration } from '../services/usePushRegistration';
 import { useAuthStore } from '../stores/authStore';
 import { linking } from './navigation/linking';
@@ -25,6 +26,7 @@ const queryClient = new QueryClient({
 /** QueryClientProvider 안에서 푸시 등록 (푸시가 오면 쿼리를 다시 받는다) */
 function PushRegistration() {
   usePushRegistration();
+  useGuardianLocalNotifications();
   return null;
 }
 

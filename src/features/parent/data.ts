@@ -256,6 +256,8 @@ export async function registerSchedule(input: ScheduleInput) {
   }
   if (sc.scheduleId) await scheduleApi.update(sc.scheduleId, body);
   try {
+    // 자녀가 동의한 위치 공유(C00)를 픽업 중 지도에 쓰도록 켠다 (SET-11, 기본 꺼짐)
+    await setupApi.childLocation(true).catch(() => {});
     const sum = await setupApi.summary(input.childId);
     await setupApi.complete(
       input.childId,

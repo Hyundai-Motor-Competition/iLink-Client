@@ -100,17 +100,19 @@ function Bullet({ text }: { text: string }) {
  * 배경은 시안의 차량 실내 사진(BG_IMG)을 화면 전체에 깔고, 아래쪽은 어둡게 덮는다.
  * 촬영 버튼을 누르면 차량 QR을 읽은 것으로 보고 넘어간다.
  */
-export function QrScanScreen({ navigation }: P<'PQrScan'>) {
+export function QrScanScreen({ navigation, route }: P<'PQrScan'>) {
   const patch = useFamilyDraft(d => d.patch);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // 에뮬레이터에는 카메라가 없어, 촬영하면 시험용 차량의 연결 코드를 받아 스캔한 것으로 본다
-  const shoot = async () => {
+  const scanned = route.params?.code;
+  // 카메라로 차량 QR을 읽으면(pickup://link?code=) 그 코드로 바로 확인한다.
+  // 카메라가 없는 에뮬레이터에서 촬영 버튼만 누르면 시험용 차량의 연결 코드를 받아 스캔한 것으로 본다
+  const shoot = async (code?: string) => {
     if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      const link = await checkLinkCode(await issueTestLinkCode());
+      const link = await checkLinkCode(code ?? (await issueTestLinkCode()));
       patch({ link });
       navigation.navigate('PCarConfirm');
     } catch (e) {
@@ -119,6 +121,12 @@ export function QrScanScreen({ navigation }: P<'PQrScan'>) {
       setBusy(false);
     }
   };
+
+  // 링크로 들어온 코드는 바로 확인 (QR을 읽은 순간)
+  useEffect(() => {
+    if (scanned) shoot(scanned);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanned]);
 
   return (
     <View style={s.camRoot}>
@@ -142,7 +150,7 @@ export function QrScanScreen({ navigation }: P<'PQrScan'>) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="촬영"
-          onPress={shoot}
+          onPress={() => shoot(scanned)}
           style={({ pressed }) => [s.shutter, pressed && s.shutterPressed]}
         >
           <View style={s.shutterInner} />

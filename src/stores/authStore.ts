@@ -29,11 +29,15 @@ export const useAuthStore = create<AuthState>(set => ({
     set({ auth, status: auth ? 'signedIn' : 'signedOut' });
   },
   async signIn(auth) {
-    await saveAuth(auth);
+    // 키체인 저장이 실패해도(서명 없는 시뮬레이터 빌드) 이번 실행에서는 로그인 상태로 진행한다
+    await Promise.race([
+      saveAuth(auth).catch(() => {}),
+      new Promise<void>(resolve => setTimeout(resolve, 2000)),
+    ]);
     set({ auth, status: 'signedIn' });
   },
   async signOut() {
-    await clearAuth();
+    await clearAuth().catch(() => {});
     set({ auth: null, status: 'signedOut' });
   },
 }));

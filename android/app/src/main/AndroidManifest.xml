@@ -3,6 +3,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Android 13+ 알림 표시 권한 (FCM 푸시) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 자녀: 합류 안내(C03) 지도 · 위치 공유 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
       android:name=".MainApplication"
@@ -24,6 +27,15 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <!-- 차량 QR(pickup://link?code=) · 가족 초대(pickup://invite/{token}) -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="pickup" />
+        </intent-filter>
       </activity>
+      <!-- FCM 알림 작은 아이콘(iLink 로고). 채널 · 색은 firebase.json (채널은 MainApplication에서 만든다) -->
+      <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_notification" />
     </application>
 </manifest>

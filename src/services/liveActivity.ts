@@ -48,7 +48,10 @@ const NEAR_SECONDS = 180;
 const NEAR_METERS = 700;
 
 /** 세션 → Live Activity 내용. 출발 전(장소 확정 전)이거나 끝났으면 null */
-export function liveStateOf(v: SessionView | undefined): LiveState | null {
+export function liveStateOf(
+  v: SessionView | undefined,
+  perspective: 'child' | 'guardian' = 'child',
+): LiveState | null {
   if (!v?.status || v.status.spot !== 'CONFIRMED') return null;
   if (v.status.session === 'COMPLETED' || v.status.session === 'CANCELLED')
     return null;
@@ -70,19 +73,33 @@ export function liveStateOf(v: SessionView | undefined): LiveState | null {
     etaText: hhmm(v.eta?.stopEtaAt),
     stage: stopped || v.call?.callId ? 2 : near ? 1 : 0,
     progress,
-    headline: stopped
-      ? '차가 도착했어요'
-      : `${driver ? `${driver}님이` : '보호자가'} 출발했어요`,
+    headline:
+      perspective === 'guardian'
+        ? guardianHeadline(v, stopped)
+        : stopped
+        ? '차가 도착했어요'
+        : `${driver ? `${driver}님이` : '보호자가'} 출발했어요`,
   };
+}
+
+/** 보호자 폰: 아이 이름 기준 문구 */
+function guardianHeadline(v: SessionView, stopped: boolean) {
+  const child = v.children?.[0]?.name ?? '아이';
+  if (v.boarding?.detectedAt) return `${child} 탑승을 확인하고 있어요`;
+  if (stopped) return v.call?.callId ? `${child}에게 합류 안내를 보냈어요` : '도착했어요';
+  return `${child} 픽업 가는 중`;
 }
 
 /**
  * 자녀 화면에서 세션을 따라 Live Activity를 켜고 끈다.
  * iOS 시뮬레이터 · 시연용: 실행 인자 `-demoLiveActivity YES`면 서버 없이 예시 내용으로 띄운다.
  */
-export function useChildLiveActivity(v: SessionView | undefined) {
+export function useChildLiveActivity(
+  v: SessionView | undefined,
+  perspective: 'child' | 'guardian' = 'child',
+) {
   const started = useRef(false);
-  const s = liveStateOf(v);
+  const s = liveStateOf(v, perspective);
   const key = s ? JSON.stringify(s) : null;
   useEffect(() => {
     if (!liveActivity.supported) return;

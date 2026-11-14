@@ -80,6 +80,10 @@ export const spotApi = {
 };
 
 export const setupApi = {
+  /** SET-11: 픽업 중(합류 안내 뒤) 자녀 위치를 받을지. 켜야 자녀 앱의 SIG-04가 받아들여진다 */
+  childLocation: (enabled: boolean) =>
+    api.put<unknown>('/v1/families/me/child-location', { body: { enabled } }),
+
   summary: (childId: number) =>
     api.get<Schemas['SetupSummaryResponse']>(
       `/v1/children/${childId}/setup-summary`,

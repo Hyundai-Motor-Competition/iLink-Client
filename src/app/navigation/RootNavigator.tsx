@@ -19,6 +19,8 @@ import { PickupOutcomeScreen } from '../../features/outcome/PickupOutcomeScreen'
 import { ChildSessionScreen } from '../../features/child/ChildSessionScreen';
 import type { ChildStackParams, GuardianStackParams } from './types';
 
+const DEMO_ROUTES = new Set(['PMain', 'CInvite', 'CWaiting', 'CDeparted', 'CMeet', 'CHelp', 'CDone']);
+
 const Guardian = createNativeStackNavigator<GuardianStackParams>();
 const Child = createNativeStackNavigator<ChildStackParams>();
 
@@ -37,13 +39,11 @@ export function RootNavigator() {
   // 같은 자리의 같은 컴포넌트라 가족 프로필 등록 중 로그인(LINK-04)해도 화면 이동 기록이 이어진다.
   if (status === 'signedOut' || !auth || isGuardianRole(auth.role)) {
     // 시연 · 캡처용: iOS 실행 인자 `-demoRoute PMain`이면 로그인 없이 메인(데모 데이터)으로 시작
-    const demoMain =
-      Platform.OS === 'ios' && Settings.get('demoRoute') === 'PMain';
-    return (
-      <DemoNavigator
-        initialRouteName={auth || demoMain ? 'PMain' : 'Landing'}
-      />
-    );
+    // 화면 확인용: `-demoRoute CMeet` 처럼 데모 화면 이름을 주면 그 화면으로 시작
+    const demoRoute =
+      Platform.OS === 'ios' ? (Settings.get('demoRoute') as string | undefined) : undefined;
+    const start = auth ? 'PMain' : demoRoute && DEMO_ROUTES.has(demoRoute) ? demoRoute : 'Landing';
+    return <DemoNavigator initialRouteName={start as never} />;
   }
 
   if (isGuardianRole(auth.role)) {

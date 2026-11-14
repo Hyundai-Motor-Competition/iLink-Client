@@ -24,7 +24,7 @@ struct PickupLiveActivity: Widget {
         }
         DynamicIslandExpandedRegion(.trailing) {
           VStack(alignment: .trailing, spacing: 2) {
-            Text("\(context.state.minutesLeft)분")
+            Text(context.state.minutesLeft > 0 ? "\(context.state.minutesLeft)분" : "도착")
               .font(.system(size: 28, weight: .heavy))
               .foregroundStyle(PickupTheme.yellow)
             Text(context.state.headline)
@@ -44,7 +44,7 @@ struct PickupLiveActivity: Widget {
       } compactLeading: {
         Avatar(size: 22, ring: 2)
       } compactTrailing: {
-        Text("\(context.state.minutesLeft)분")
+        Text(context.state.minutesLeft > 0 ? "\(context.state.minutesLeft)분" : "도착")
           .font(.system(size: 15, weight: .bold))
           .foregroundStyle(PickupTheme.yellow)
       } minimal: {
@@ -68,10 +68,11 @@ struct LockScreenView: View {
             .font(.system(size: 14, weight: .medium))
             .foregroundStyle(PickupTheme.sub)
           HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text("\(state.minutesLeft)분")
+            // 정차하면 '0분 후 도착' 대신 '도착'
+            Text(state.minutesLeft > 0 ? "\(state.minutesLeft)분" : "도착")
               .font(.system(size: 32, weight: .heavy))
               .foregroundStyle(PickupTheme.yellow)
-            Text("후 도착")
+            Text(state.minutesLeft > 0 ? "후 도착" : "했어요")
               .font(.system(size: 22, weight: .semibold))
               .foregroundStyle(.white)
           }

@@ -1,3 +1,4 @@
 <resources>
     <color name="splash_bg">#111200</color>
+    <color name="notification">#111200</color>
 </resources>

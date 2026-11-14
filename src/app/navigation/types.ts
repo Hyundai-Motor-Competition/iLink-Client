@@ -29,7 +29,8 @@ export type DemoStackParams = {
   PFamilyIntro: undefined;
   /** 인증 번호(차량 화면의 연결 코드) 입력 */
   PCodeEntry: undefined;
-  PQrScan: undefined;
+  /** 차량 QR을 읽으면(pickup://link?code=) code가 들어온다 */
+  PQrScan: { code?: string } | undefined;
   PCarConfirm: undefined;
   PTerms: undefined;
   PGuardianProfile: undefined;
